@@ -157,10 +157,25 @@ fun transExp(venv, tenv) =
 			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
 		| trexp(ArrayExp({typ, size, init}, nl)) =
 			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
-		and trvar(SimpleVar s, nl) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+		and trvar(SimpleVar s, nl) = (* Buscamos si esta definida la variable en el scope actual *)
+            let
+                val vartype = case tabBusca(s, venv) of
+                    SOME (Var{ty}) => ty
+                    | _ => error("Variable no definida en el scope", nl)
+            in
+			    {exp=SCAF, ty=vartype}
+            end
 		| trvar(FieldVar(v, s), nl) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+                val {exp=varexp, ty=vartype} = trvar(v, nl)
+                val vtype = case vartype of
+                                TRecord (ls, _) =>
+                                    (case List.filter (fn x => #1x = s) l of
+                                        [] => error("trvar: El nombre de la variable no existe en este record "^s, nl)
+                                        | (x::_) => #2x)
+                                | _ => (tigerpp.prettyPrintTipo(vartype) ; error("trvar: No se puede indexar por que no es Record", nl))
+            in {exp=SCAF, ty=(!vtype)}
+            end
 		| trvar(SubscriptVar(v, e), nl) =
 			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
 		and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
