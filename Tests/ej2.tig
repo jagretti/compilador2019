@@ -1,0 +1,85 @@
+(
+let
+        type lista = {item: int, resto: lista}
+	/* Define cons      */
+	function cons(i: int, ls: lista) : lista =
+		 lista{item = i, resto = ls}
+	/* Define length    */
+	function length(ls: lista) : int =
+		 if ls = nil then 0 else 1+length(ls.resto)
+	/* Define concat    */
+	function concat(xs: lista, ys: lista) : lista =
+		 if xs = nil then ys else cons(xs.item, concat(xs.resto, ys))
+	/* Define snoc      */
+	function snoc(n: int, ls: lista) : lista =
+		 if ls = nil then lista{item = n, resto = nil}
+		       	     else lista{item = ls.item, resto = snoc(n,ls.resto)}
+	/* Define filtra    */
+	function filtra(n: int, ls: lista) : lista =
+		 if ls = nil then nil
+		       	     else if ls.item = n then filtra(n,ls.resto)
+			     	     	       	 else lista{item = ls.item, resto = filtra(n,ls.resto)}
+	/* Define isin      */
+	function isin(x: int, xs: lista) : int =
+		 if xs = nil then 0
+		       	     else if xs.item = x then 1
+			     	     	       	 else isin(x, xs.resto)
+	/* Define remove    */
+	function remove(x: int, xs: lista) : lista =
+		 let
+		 function auxRemove(x: int, xs: lista) : lista =
+		 	  if x = xs.item then xs.resto
+			       	 	 else lista{item = xs.item, resto = auxRemove(x,xs.resto)}
+		 in  if isin(x,xs) = 1 then auxRemove(x,xs) else xs end
+	/* Define removeall */
+	function removeall(x: int, xs: lista) : lista =
+		 if xs = nil then nil
+		       	     else remove(x, lista{item = xs.item, resto = removeall(x,xs.resto)})
+	/* Define reverse   */
+	function reverse(ls: lista) : lista =
+		 if ls = nil then nil
+		       	     else concat(reverse(ls.resto), cons(ls.item, nil))
+	/* Define printlist */
+	function printlist(ls: lista) =
+		 let
+			function isdigit(n: int) : int =
+				 if (0 <= n & n <= 9) then 1 else 0
+			function getnumber(n: int) : lista =
+				 getdigits(n, nil)
+			function getdigits(n: int, ls: lista) : lista = 
+				 if isdigit(n) then cons(n,ls)
+				    	       else getdigits(n/10, cons(n-(n/10)*10, ls))
+			function printdigits(ls: lista) =
+				 if ls = nil then print("")
+			      	       	     else (print(chr(ls.item + 48));
+			     	 	          printdigits(ls.resto))
+			function printnumber(n: int) =	printdigits(getnumber(n))
+		in	if ls <> nil then (
+			      printnumber(ls.item);
+			      if ls.resto = nil then print("") else print(",");
+			      printlist(ls.resto))
+			else
+			      print("\n")
+		end
+		
+	var emptyList := nil
+	var listOne := cons(1, emptyList)
+	var ls := cons(3,cons(5, cons(3, cons(2, cons(40,listOne)))))
+	var ks := cons(7,cons(9,nil))
+in
+(
+	print("ls := "); printlist(ls);
+	print("ks := "); printlist(ks);
+	print("cons(1,nil) = "); printlist(listOne);
+	print("length(ls) = "); printlist(cons(length(ls),nil));
+	print("concat(ls,ks) = "); printlist(concat(ls,ks));
+	print("snoc(66, ls) = "); printlist(snoc(66,ls));
+	print("isin(40, ls) = "); printlist(cons(isin(40,ls), nil));
+	print("isin(9, ls) = "); printlist(cons(isin(9,ls), nil));
+	print("remove(3,ls) = "); printlist(remove(3,ls));
+	print("remove(9,ls) = "); printlist(remove(9,ls));
+	print("removeall(3,ls) = "); printlist(removeall(3,ls));
+	print("reverse(ls) = "); printlist(reverse(ls));
+0)
+end
+;0)
