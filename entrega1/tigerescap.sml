@@ -10,8 +10,8 @@ type escEnv = (string, depth * bool ref) tigertab.Tabla
 fun travVar env d s =
     case s of
         SimpleVar s => (case tabBusca(s, env) of
-			    SOME (dd, b) => if d>dd then b:=true else ()
-			  | NONE => raise Fail ("escape?? "^s^" inexist."))
+                            SOME (dd, b) => if d>dd then b:=true else ()
+                          | NONE => raise Fail ("escape?? "^s^" inexist."))
       | FieldVar(v, s) => travVar env d v
       | SubscriptVar(v, e) => (travVar env d v; travExp env d e)
 and travExp env d s =
@@ -27,9 +27,9 @@ and travExp env d s =
       | WhileExp({test, body}, _) => (travExp env d test; travExp env d body)
       | ForExp({var, escape, lo, hi, body}, _) =>
         let
-	    val env' = tabRInserta(var, (d, escape), env);
+            val env' = tabRInserta(var, (d, escape), env);
         in
-	    travExp env d lo;
+            travExp env d lo;
             travExp env d hi;
             travExp env' d body
         end
@@ -39,26 +39,26 @@ and travExp env d s =
 and travDecs env d [] = env
   | travDecs env d (s::t) =
     let
-	fun aux s =
+        fun aux s =
             case s of
                 FunctionDec l =>
                 let
-		    fun aux(({name, params, result, body}, _), env) =
+                    fun aux(({name, params, result, body}, _), env) =
                         let
-			    fun aux1(x, e) = tabRInserta(#name(x), (d+1, #escape(x)), e)
+                            fun aux1(x, e) = tabRInserta(#name(x), (d+1, #escape(x)), e)
                             val env' = foldr aux1 env params
                         in
-			    travExp env' (d+1) body; env
-			end
+                            travExp env' (d+1) body; env
+                        end
                 in
-		    foldl aux env l
-		end
+                    foldl aux env l
+                end
               | VarDec({name, escape, typ, init}, _) =>
                 (travExp env d init; tabRInserta(name, (d, escape), env))
               | TypeDec _ => env
         val env' = aux s
     in
-	travDecs env' d t
+        travDecs env' d t
     end
 
 fun findEscape prog = travExp (tigertab.tabNueva()) 0 prog
