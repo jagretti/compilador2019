@@ -1,6 +1,6 @@
 signature tigertrans = sig
 
-type exp 
-val SCAF : exp
+    type exp
+    val SCAF : exp
 
 end
