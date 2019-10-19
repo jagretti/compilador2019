@@ -75,7 +75,7 @@ tigertopsort.uo: tigertopsort.ui tigertab.ui tigertips.uo tigerabs.uo \
     tigermuestratipos.ui 
 tigertrans.uo: tigertrans.ui 
 tigerlex.uo: tigergrm.ui tigernlin.uo 
-tigerpp.uo: tigerabs.uo 
+tigerpp.uo: tigerabs.uo tigertips.uo tigersres.uo
 tigerseman.ui: tigerabs.uo 
 tigermuestratipos.uo: tigermuestratipos.ui tigertips.uo 
 tigermuestratipos.ui: tigertips.uo 

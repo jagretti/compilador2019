@@ -1,7 +1,7 @@
 structure tigertrans :> tigertrans = struct
 
 datatype exp =
-	scaf
+    scaf
 
 val SCAF = scaf
 
