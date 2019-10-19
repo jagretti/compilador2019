@@ -21,22 +21,22 @@ datatype var = SimpleVar of symbol
              | IfExp of {test: exp, then': exp, else': exp option} * pos
              | WhileExp of {test: exp, body: exp} * pos
              | ForExp of {var: symbol, escape: bool ref,
-			  lo: exp, hi: exp, body: exp} * pos
+                          lo: exp, hi: exp, body: exp} * pos
              | LetExp of {decs: dec list, body: exp} * pos
              | BreakExp of pos
              | ArrayExp of {typ: symbol, size: exp, init: exp} * pos
 
      and dec = FunctionDec of ({name: symbol, params: field list,
-				result: symbol option, body: exp} * pos) list
+                                result: symbol option, body: exp} * pos) list
              | VarDec of {name: symbol, escape: bool ref,
-			  typ: symbol option, init: exp} * pos
+                          typ: symbol option, init: exp} * pos
              | TypeDec of ({name: symbol, ty: ty} * pos) list
 
      and ty = NameTy of symbol
             | RecordTy of field list
             | ArrayTy of symbol
      and oper = PlusOp | MinusOp | TimesOp | DivideOp
-		| EqOp | NeqOp | LtOp | LeOp | GtOp | GeOp
+                | EqOp | NeqOp | LtOp | LeOp | GtOp | GeOp
 
 withtype field = {name: symbol, escape: bool ref, typ: ty}
 end
