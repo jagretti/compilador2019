@@ -163,6 +163,7 @@ fun transExp(venv, tenv) =
                     SOME (Var{ty}) => ty
                     | _ => error("Variable no definida en el scope", nl)
             in
+                tigerpp.prettyPrintTipo(vartype);
                 {exp=SCAF, ty=vartype}
             end
         | trvar(FieldVar(v, s), nl) =
@@ -174,31 +175,50 @@ fun transExp(venv, tenv) =
                                         [] => error("trvar: El nombre de la variable no existe en este record "^s, nl)
                                         | (x::_) => #2x)
                                 | _ => (tigerpp.prettyPrintTipo(vartype) ; error("trvar: No se puede indexar por que no es Record", nl))
-            in {exp=SCAF, ty=(!vtype)}
+            in
+                {exp=SCAF, ty=(!vtype)}
             end
         | trvar(SubscriptVar(v, e), nl) =
             let
-                val {exp=expexp, ty=exptype} = trexp e
+                val {exp=expexp, ty=exptype} = trexp(e)
                 val {exp=varexp, ty=vartype} = trvar(v, nl)
                 val _ = if tiposIguales exptype (TInt) then () else error("trvar: El indice debe ser entero", nl)
-            in case vartype of
-                TArray (ty, _) => {exp=SCAF, ty=(!ty)}
-                | _ => error("trvar: Indexando algo que no es un arreglo", nl) 
+            in
+                case vartype of
+                    TArray (ty, _) => {exp=SCAF, ty=(!ty)}
+                    | _ => error("trvar: Indexando algo que no es un arreglo", nl)
             end
-        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
-            (venv, tenv, []) (*COMPLETAR*)
+        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
+            let
+                val {exp=expinit, ty=tyinit} = trexp(init)
+                val _ = if tiposIguales tyinit TNil then tyinit else error("trdec: El valor tiene que ser nulo", pos)
+                val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
+            in
+                (venv', tenv, [])
+            end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
-            (venv, tenv, []) (*COMPLETAR*)
+            let
+                val {exp=expinit, ty=tyinit} = trexp(init)
+                val tyv = case tabBusca(s, tenv) of
+                              SOME t' => t'
+                              | NONE => error("trdec: Tipo indefinido", pos)
+                val _ = if tiposIguales tyinit tyv then () else error("trdec: El valor de la variable no coincide con su tipo", pos)
+                val venv' = tabInserta(name, (Var{ty=tyv}), venv)
+            in
+                (venv', tenv, [])
+            end
         | trdec (venv,tenv) (FunctionDec fs) =
             (venv, tenv, []) (*COMPLETAR*)
         | trdec (venv,tenv) (TypeDec ts) =
             (venv, tenv, []) (*COMPLETAR*)
     in trexp end
 fun transProg ex =
-    let    val main =
-                LetExp({decs=[FunctionDec[({name="_tigermain", params=[],
-                                result=NONE, body=ex}, 0)]],
-                        body=UnitExp 0}, 0)
+    let
+        val main = LetExp({decs=[FunctionDec[({name="_tigermain", params=[],
+                                               result=NONE, body=ex}, 0)]],
+                           body=UnitExp 0}, 0)
         val _ = transExp(tab_vars, tab_tipos) main
-    in    print "bien!\n" end
+    in
+        print "bien!\n"
+    end
 end
