@@ -12,6 +12,7 @@ eval_test () {
             echo "$(tput setaf 2)[ok] $(tput sgr 0) $d"
         else
             echo "$(tput setaf 1)[err] $(tput sgr 0) $d"
+	    ./tiger $d
         fi   
     done
 }

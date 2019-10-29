@@ -25,7 +25,9 @@ EXEFILE=
 .SUFFIXES : .sig .sml .ui .uo
 
 GRALOBJS= tigerabs.uo tigergrm.uo tigerlex.uo tigermain.uo \
-	tigernlin.uo tigerpp.uo tigerescap.uo tigertab.uo tigerseman.uo tigertemp.uo topsort.uo tigertrans.uo
+	tigernlin.uo tigerpp.uo tigerescap.uo tigertab.uo \
+	tigerseman.uo tigertemp.uo topsort.uo tigertrans.uo \
+	tigertopsort.uo tigermuestratipos.uo
 
 all: tiger
 
@@ -67,7 +69,7 @@ depend: tigerabs.sml tigergrm.sml tigerlex.sml tigermain.sml \
 tigerescap.uo: tigerescap.ui tigertab.ui tigerabs.uo 
 tigerescap.ui: tigerabs.uo 
 tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigerabs.uo \
-    tigertrans.ui 
+    tigertrans.ui tigertopsort.ui
 tigersres.uo: tigertab.ui tigertips.uo tigertemp.ui tigerabs.uo 
 tigergrm.uo: tigergrm.ui tigernlin.uo tigerabs.uo 
 tigertopsort.ui: tigertab.ui tigertips.uo tigerabs.uo 
