@@ -8,21 +8,28 @@ TYPE_DIR=${TEST_DIR}/type
 
 eval_test ()
 {
+    FILE_COUNT=0
+    OK_COUNT=0
     for d in $1/* ; do
+	FILE_COUNT=$((FILE_COUNT+1))
         if ./tiger $d | grep -q "bien!" ; then
+	    OK_COUNT=$((OK_COUNT+1))
             echo "$(tput setaf 2)[ok] $(tput sgr 0) $d"
         else
             echo "$(tput setaf 1)[err] $(tput sgr 0) $d"
 	    ./tiger $d
         fi
     done
+    echo "Result ${OK_COUNT}/${FILE_COUNT} (ok/number of files)"
 }
 
 usage()
 {
+    echo "[-h | --help]    print 'this' help"
     echo "[-g | --good]    to test tiger's files in ${GOOD_DIR}"
     echo "[-s | --syntax]  to test tiger's files in ${SYNTAX_DIR}"
     echo "[-t | --type]    to test tiger's files in ${TYPE_DIR}"
+    echo "no paramerts test tiger's files in ${GOOD_DIR} ${SYNTAX_DIR} ${TYPE_DIR}"
 }
 
 if [ $# -gt 0 ]; then
