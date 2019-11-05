@@ -120,14 +120,16 @@ fun transExp(venv, tenv) =
                 val exprs = map (fn{exp, ty} => exp) lexti
                 val {exp, ty=tipo} = hd(rev lexti)
             in    
+                print "Pase por SeqExp!!\n";
                 {exp=SCAF, ty=tipo} 
             end
         | trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
             let 
                 val {exp=expexp, ty=exptype} = trexp exp
                 val vartype = if tabEsta(s, tenv) then tabSaca(s, tenv) else error("trexp::AssignExp - Tipo sin definir", nl)
-                val _ = if not(tiposIguales vartype TIntRO) then error("trexp::AssignExp - Asignacion en variable de solo lectura", nl) else ()
+                val _ = if tiposIguales vartype TIntRO then error("trexp::AssignExp - Asignacion en variable de solo lectura", nl) else ()
             in
+                print "Pase por AssignExp!!\n";
                 {exp=SCAF, ty=TUnit}
             end
         | trexp(AssignExp({var, exp}, nl)) = 
@@ -136,6 +138,7 @@ fun transExp(venv, tenv) =
                 val {exp=expexp, ty=exptype} = trexp exp
                 val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
             in
+                print "Pase por AssignExp!!\n";
                 {exp=SCAF, ty=TUnit}
             end
         | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
@@ -169,12 +172,26 @@ fun transExp(venv, tenv) =
                 val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
                 val {exp=expbody,ty=tybody}=transExp (venv', tenv') body
             in 
+                print "Pase por LetExp!!\n";
                 {exp=SCAF, ty=tybody}
             end
         | trexp(BreakExp nl) =
             {exp=SCAF, ty=TUnit} (*COMPLETAR*)
         | trexp(ArrayExp({typ, size, init}, nl)) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+                val {exp=sizeexp,ty=sizetype} = trexp size
+                val {exp=initexp,ty=inittype} = trexp init
+                val _ = if tiposIguales sizetype (TIntRO) then () else error("trexp::ArrayExp - El size del arreglo no es entero RO",nl)
+                val (ta,ur) = (case tabBusca(typ, tenv) of
+                                SOME t => (case t of
+                                            TArray (ta',ur') => (ta',ur')
+                                            | _ => error("trexp::ArrayExp - El tipo "^typ^" no es un arreglo", nl))
+                                | _ => error("trexp::ArrayExp - Tipo "^typ^" no definido", nl))
+                val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^tigerpp.prettyPrintTipo(inittype)^"no coincide con el tipo declarado "^typ, nl)
+            in
+                print "Pase por ArrayExp!!\n";
+                {exp=SCAF, ty=TArray (ta, ur)}
+            end
         and trvar(SimpleVar s, nl) = (* Buscamos si esta definida la variable en el scope actual *)
             let
                 val vartype = case tabBusca(s, venv) of
@@ -212,6 +229,7 @@ fun transExp(venv, tenv) =
                 val _ = if tiposIguales tyinit TNil then tyinit else error("trdec: El valor tiene que ser nulo", pos)
                 val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
             in
+                print "Pase por trdec::VarDec1!!\n";
                 (venv', tenv, [])
             end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
@@ -220,9 +238,10 @@ fun transExp(venv, tenv) =
                 val tyv = case tabBusca(s, tenv) of
                               SOME t' => t'
                               | NONE => error("trdec: Tipo indefinido "^s , pos)
-                val _ = if tiposIguales tyinit tyv then () else error("trdec: El valor de la variable no coincide con su tipo", pos)
+                val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^tigerpp.prettyPrintTipo(tyv), pos)
                 val venv' = tabInserta(name, (Var{ty=tyv}), venv)
             in
+                print "Pase por trdec::VarDec2!!\n";
                 (venv', tenv, [])
             end
         | trdec (venv,tenv) (FunctionDec fs) =
@@ -274,7 +293,8 @@ fun transExp(venv, tenv) =
                 val venv' = aux venv fs
                 val _ = addParams venv' fs
 	        in
-	            (venv', tenv, [])
+                print "Pase por trdec::FunctionDec!!\n";
+                (venv', tenv, [])
 	        end
         | trdec (venv,tenv) (TypeDec ts) =
             let val sortedNames = Listsort.sort (fn (({name=x,ty=_},_), ({name=y,ty=_},_)) => if x<y then LESS else (if x>y then GREATER else EQUAL)) ts
@@ -285,6 +305,7 @@ fun transExp(venv, tenv) =
                 val ltsinpos = List.map (fn (x,pos) => x) ts
                 val tenv' = tigertopsort.fijaTipos ltsinpos tenv
 	        in
+                print "Pase por trdec::TypeDec!!\n";
 	            (venv, tenv', [])
 	        end
     in trexp end

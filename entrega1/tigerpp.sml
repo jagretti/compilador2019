@@ -224,6 +224,7 @@ fun exprAst e =
 fun prettyPrintTipo (TNil) = "TNil"
     | prettyPrintTipo (TUnit) = "TUnit"
     | prettyPrintTipo (TInt) = "TInt"
+    | prettyPrintTipo (TIntRO) = "TIntRO"
     | prettyPrintTipo (TString) = "TString"
     | prettyPrintTipo (TArray(r, uniq)) = ("TArray " ^ prettyPrintTipo (!r))
     | prettyPrintTipo (TRecord(l, uniq)) = "TRecord "

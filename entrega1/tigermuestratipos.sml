@@ -11,6 +11,7 @@ fun printTipo(n, t, lenv) =
         fun prnt TUnit = print "TUnit\n"
         | prnt TNil = print "TNil\n"
         | prnt TInt = print "TInt\n"
+        | prnt TIntRO = print "TIntRO\n"
         | prnt TString = print "TString\n"
         | prnt(TArray(ref t, _)) = (print "TArray of "; prnt t)
         | prnt(TRecord(l, u)) =
