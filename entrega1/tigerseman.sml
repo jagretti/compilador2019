@@ -47,6 +47,15 @@ fun tiposIguales (TRecord _) TNil = true
   | tiposIguales (TArray (_, u1)) (TArray (_, u2)) = (u1=u2)
   | tiposIguales a b = (a=b)
 
+fun printTE location tenv =
+    let
+	val _ = print ("["^location^"] type environment >>>\n")
+	val _ = List.app (fn (name) => print ("\t"^name^"\n")) (tabClaves tenv)
+	val _ = print ("["^location^"] type environment <<<\n")
+    in
+	()
+    end
+
 fun transExp(venv, tenv) =
     let fun error(s, p) = raise Fail ("Error -- línea "^Int.toString(p)^": "^s^"\n")
         fun trexp(VarExp v) = trvar(v)
@@ -94,7 +103,6 @@ fun transExp(venv, tenv) =
             let
                 (* Traducir cada expresión de fields *)
                 val tfields = map (fn (sy,ex) => (sy, trexp ex)) fields
-
                 (* Buscar el tipo *)
                 val (tyr, cs) = case tabBusca(typ, tenv) of
                     SOME t => (case t of
@@ -122,15 +130,6 @@ fun transExp(venv, tenv) =
             in    
                 print "Pase por SeqExp!!\n";
                 {exp=SCAF, ty=tipo} 
-            end
-        | trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-            let 
-                val {exp=expexp, ty=exptype} = trexp exp
-                val vartype = if tabEsta(s, tenv) then tabSaca(s, tenv) else error("trexp::AssignExp - Tipo sin definir", nl)
-                val _ = if tiposIguales vartype TIntRO then error("trexp::AssignExp - Asignacion en variable de solo lectura", nl) else ()
-            in
-                print "Pase por AssignExp!!\n";
-                {exp=SCAF, ty=TUnit}
             end
         | trexp(AssignExp({var, exp}, nl)) = 
             let
@@ -225,8 +224,8 @@ fun transExp(venv, tenv) =
             end
         and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
             let
-                val {exp=expinit, ty=tyinit} = trexp(init)
-                val _ = if tiposIguales tyinit TNil then tyinit else error("trdec: El valor tiene que ser nulo", pos)
+                val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
+                val _ = if tiposIguales tyinit TNil then error("trdec: El valor no tiene que ser nulo", pos) else tyinit
                 val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
             in
                 print "Pase por trdec::VarDec1!!\n";
@@ -234,7 +233,7 @@ fun transExp(venv, tenv) =
             end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
             let
-                val {exp=expinit, ty=tyinit} = trexp(init)
+                val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
                 val tyv = case tabBusca(s, tenv) of
                               SOME t' => t'
                               | NONE => error("trdec: Tipo indefinido "^s , pos)
@@ -305,7 +304,7 @@ fun transExp(venv, tenv) =
                 val ltsinpos = List.map (fn (x,pos) => x) ts
                 val tenv' = tigertopsort.fijaTipos ltsinpos tenv
 	        in
-                print "Pase por trdec::TypeDec!!\n";
+                    print "Pase por trdec::TypeDec!!\n";
 	            (venv, tenv', [])
 	        end
     in trexp end
