@@ -63,8 +63,19 @@ fun transExp(venv, tenv) =
         | trexp(NilExp _)= {exp=SCAF, ty=TNil}
         | trexp(IntExp(i, _)) = {exp=SCAF, ty=TInt}
         | trexp(StringExp(s, _)) = {exp=SCAF, ty=TString}
-        | trexp(CallExp({func, args}, nl)) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+        | trexp(CallExp({func, args}, nl)) = (*REPASARLO!!! (JOSE) *)
+            let
+                val (argtypes, resultstype) = case tabBusca(func, venv) of
+                                                SOME (Func {formals=formals, result=result, level=_, label=_, extern=_}) => (formals,result)
+                                                | _ => error("trexp::CallExp - Funcion "^func^" no definida", nl)
+                val argexplist = List.map trexp args
+                val argexplisttypes = List.map (#ty) argexplist
+                val _ = if List.length argtypes = List.length argexplisttypes then () else error("trexp::CallExp - Funcion "^func^" invocada con una cantidad incorrecta de argumentos!", nl)
+                val _ = List.map (fn(x, y) => if tiposIguales x y then x else error("trexp::CallExp error de tipos", nl)) (ListPair.zip(argexplisttypes, argtypes)) 
+                        handle Empty => error("trexp::CallExp - Nº de args", nl)
+            in
+                {exp=SCAF, ty=resultstype}
+            end
         | trexp(OpExp({left, oper=EqOp, right}, nl)) =
             let
                 val {exp=_, ty=tyl} = trexp left
