@@ -178,12 +178,12 @@ fun transExp(venv, tenv) =
         | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
             let
 		val {exp=explo, ty=tylo} = trexp lo
-		val _ = if tylo = TInt then () else error("trexp::ForExp - ",nl)
+		val _ = if tylo = TInt then () else error("trexp::ForExp - valor inicial",nl)
 		val {exp=exphi, ty=tyhi} = trexp hi
-		val _ = if tyhi = TInt then () else error("trexp::ForExp - ",nl)
+		val _ = if tyhi = TInt then () else error("trexp::ForExp - cota superior",nl)
 		val venv' = tabInserta(var, (Var{ty=TIntRO}), venv)
 		val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
-		val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TNil sino "^tybody ,nl)
+		val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
 	    in
                 {exp=SCAF, ty=TUnit}
             end
