@@ -176,7 +176,17 @@ fun transExp(venv, tenv) =
                 else error("El cuerpo de un while no puede devolver un valor", nl)
             end
         | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+		val {exp=explo, ty=tylo} = trexp lo
+		val _ = if tylo = TInt then () else error("trexp::ForExp - ",nl)
+		val {exp=exphi, ty=tyhi} = trexp hi
+		val _ = if tyhi = TInt then () else error("trexp::ForExp - ",nl)
+		val venv' = tabInserta(var, (Var{ty=TIntRO}), venv)
+		val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
+		val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TNil sino "^tybody ,nl)
+	    in
+                {exp=SCAF, ty=TUnit}
+            end
         | trexp(LetExp({decs, body}, _)) =
             let
                 val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
