@@ -42,7 +42,9 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
     ])
 
 fun tiposIguales (TRecord _) TNil = true
-  | tiposIguales TNil (TRecord _) = true 
+  | tiposIguales TNil (TRecord _) = true
+  | tiposIguales TInt TIntRO = true
+  | tiposIguales TIntRO TInt = true
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
   | tiposIguales (TArray (_, u1)) (TArray (_, u2)) = (u1=u2)
   | tiposIguales a b = (a=b)
@@ -71,7 +73,7 @@ fun transExp(venv, tenv) =
                 val argexplist = List.map trexp args
                 val argexplisttypes = List.map (#ty) argexplist
                 val _ = if List.length argtypes = List.length argexplisttypes then () else error("trexp::CallExp - Funcion "^func^" invocada con una cantidad incorrecta de argumentos!", nl)
-                val _ = List.map (fn(x, y) => if tiposIguales x y then x else error("trexp::CallExp error de tipos", nl)) (ListPair.zip(argexplisttypes, argtypes)) 
+                val _ = List.map (fn(x, y) => if tiposIguales x y then x else error("trexp::CallExp error de tipos", nl)) (ListPair.zip(argexplisttypes, argtypes))
                         handle Empty => error("trexp::CallExp - Nº de args", nl)
             in
                 {exp=SCAF, ty=resultstype}
@@ -84,7 +86,7 @@ fun transExp(venv, tenv) =
                 if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=SCAF, ty=TInt}
                     else error("Tipos no comparables", nl)
             end
-        | trexp(OpExp({left, oper=NeqOp, right}, nl)) = 
+        | trexp(OpExp({left, oper=NeqOp, right}, nl)) =
             let
                 val {exp=_, ty=tyl} = trexp left
                 val {exp=_, ty=tyr} = trexp right
@@ -92,14 +94,14 @@ fun transExp(venv, tenv) =
                 if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then {exp=SCAF, ty=TInt}
                     else error("Tipos no comparables", nl)
             end
-        | trexp(OpExp({left, oper, right}, nl)) = 
+        | trexp(OpExp({left, oper, right}, nl)) =
             let
                 val {exp=_, ty=tyl} = trexp left
                 val {exp=_, ty=tyr} = trexp right
             in
                 if tiposIguales tyl tyr then
                     case oper of
-                        PlusOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        PlusOp => if tiposIguales tyl TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
                         | MinusOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
                         | TimesOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
                         | DivideOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
@@ -120,7 +122,7 @@ fun transExp(venv, tenv) =
                         TRecord (cs, u) => (TRecord (cs, u), cs)
                         | _ => error(typ^" no es de tipo record", nl))
                     | NONE => error("Tipo inexistente ("^typ^")", nl)
-                
+
                 (* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *)
                 fun verificar [] [] = ()
                   | verificar (c::cs) [] = error("Faltan campos", nl)
@@ -130,21 +132,26 @@ fun transExp(venv, tenv) =
                         else if tiposIguales ty (!t) then verificar cs ds
                              else error("Error de tipo del campo "^s, nl)
                 val _ = verificar cs tfields
+
             in
+		print("Pase por RecordExp\n");
                 {exp=SCAF, ty=tyr}
             end
         | trexp(SeqExp(s, nl)) =
-            let    
+            let
                 val lexti = map trexp s
                 val exprs = map (fn{exp, ty} => exp) lexti
                 val {exp, ty=tipo} = hd(rev lexti)
-            in    
+            in
                 print "Pase por SeqExp!!\n";
-                {exp=SCAF, ty=tipo} 
+                {exp=SCAF, ty=tipo}
             end
-        | trexp(AssignExp({var, exp}, nl)) = 
+        | trexp(AssignExp({var, exp}, nl)) =
             let
                 val {exp=varexp, ty=vartype} = trvar(var, nl)
+		val _ = case vartype of
+			    TIntRO => error("trexp::AssingExp - La variable es readonly",nl)
+			    | _ => ()
                 val {exp=expexp, ty=exptype} = trexp exp
                 val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
             in
@@ -178,9 +185,9 @@ fun transExp(venv, tenv) =
         | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
             let
 		val {exp=explo, ty=tylo} = trexp lo
-		val _ = if tylo = TInt then () else error("trexp::ForExp - valor inicial",nl)
+		val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
 		val {exp=exphi, ty=tyhi} = trexp hi
-		val _ = if tyhi = TInt then () else error("trexp::ForExp - cota superior",nl)
+		val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
 		val venv' = tabInserta(var, (Var{ty=TIntRO}), venv)
 		val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
 		val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
@@ -191,7 +198,7 @@ fun transExp(venv, tenv) =
             let
                 val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
                 val {exp=expbody,ty=tybody}=transExp (venv', tenv') body
-            in 
+            in
                 print "Pase por LetExp!!\n";
                 {exp=SCAF, ty=tybody}
             end
@@ -201,7 +208,6 @@ fun transExp(venv, tenv) =
             let
                 val {exp=sizeexp,ty=sizetype} = trexp size
                 val {exp=initexp,ty=inittype} = trexp init
-                val _ = if tiposIguales sizetype (TIntRO) then () else error("trexp::ArrayExp - El size del arreglo no es entero RO",nl)
                 val (ta,ur) = (case tabBusca(typ, tenv) of
                                 SOME t => (case t of
                                             TArray (ta',ur') => (ta',ur')
@@ -216,7 +222,7 @@ fun transExp(venv, tenv) =
             let
                 val vartype = case tabBusca(s, venv) of
                     SOME (Var{ty}) => ty
-                    | _ => error("Variable no definida en el scope", nl)
+                    | _ => error("Variable "^s^" no definida en el scope", nl)
             in
                 (* tigerpp.prettyPrintTipo(vartype); *)
                 {exp=SCAF, ty=vartype}
@@ -237,16 +243,17 @@ fun transExp(venv, tenv) =
             let
                 val {exp=expexp, ty=exptype} = trexp(e)
                 val {exp=varexp, ty=vartype} = trvar(v, nl)
-                val _ = if tiposIguales exptype (TInt) then () else error("trvar: El indice debe ser entero", nl)
+                val _ = if tiposIguales exptype (TInt) then () else error("trvar::SubscriptVar El indice debe ser entero pero es "^tigerpp.prettyPrintTipo(exptype), nl)
             in
                 case vartype of
                     TArray (ty, _) => {exp=SCAF, ty=(!ty)}
                     | _ => error("trvar: Indexando algo que no es un arreglo", nl)
             end
-        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
+        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},nl)) =
             let
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
-                val _ = if tiposIguales tyinit TNil then error("trdec: El valor no tiene que ser nulo", pos) else tyinit
+		val _ = case tyinit of TNil => error("Variable "^name^" inicializada en nil sin tipar.",nl)  (* var a := nil, tiene que dar error, test45.tig *)
+                                  |_ => ()
                 val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
             in
                 print "Pase por trdec::VarDec1!!\n";
