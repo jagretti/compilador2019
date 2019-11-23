@@ -65,7 +65,7 @@ fun transExp(venv, tenv) =
         | trexp(NilExp _)= {exp=SCAF, ty=TNil}
         | trexp(IntExp(i, _)) = {exp=SCAF, ty=TInt}
         | trexp(StringExp(s, _)) = {exp=SCAF, ty=TString}
-        | trexp(CallExp({func, args}, nl)) = (*REPASARLO!!! (JOSE) *)
+        | trexp(CallExp({func, args}, nl)) = 
             let
                 val (argtypes, resultstype) = case tabBusca(func, venv) of
                                                 SOME (Func {formals=formals, result=result, level=_, label=_, extern=_}) => (formals,result)
@@ -102,13 +102,13 @@ fun transExp(venv, tenv) =
                 if tiposIguales tyl tyr then
                     case oper of
                         PlusOp => if tiposIguales tyl TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | MinusOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | TimesOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | DivideOp => if tyl=TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | LtOp => if tyl=TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | LeOp => if tyl=TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | GtOp => if tyl=TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
-                        | GeOp => if tyl=TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | MinusOp => if tiposIguales tyl TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | TimesOp => if tiposIguales tyl TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | DivideOp => if tiposIguales tyl TInt then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | LtOp => if tiposIguales tyl TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | LeOp => if tiposIguales tyl TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | GtOp => if tiposIguales tyl TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
+                        | GeOp => if tiposIguales tyl TInt orelse tyl=TString then {exp=SCAF,ty=TInt} else error("Error de tipos", nl)
                         | _ => raise Fail "No debería pasar! (3)"
                 else error("Error de tipos", nl)
             end
@@ -134,7 +134,7 @@ fun transExp(venv, tenv) =
                 val _ = verificar cs tfields
 
             in
-		print("Pase por RecordExp\n");
+		        print("Pase por RecordExp\n");
                 {exp=SCAF, ty=tyr}
             end
         | trexp(SeqExp(s, nl)) =
@@ -149,9 +149,9 @@ fun transExp(venv, tenv) =
         | trexp(AssignExp({var, exp}, nl)) =
             let
                 val {exp=varexp, ty=vartype} = trvar(var, nl)
-		val _ = case vartype of
-			    TIntRO => error("trexp::AssingExp - La variable es readonly",nl)
-			    | _ => ()
+		        val _ = case vartype of
+			        TIntRO => error("trexp::AssingExp - La variable es readonly",nl)
+			        | _ => ()
                 val {exp=expexp, ty=exptype} = trexp exp
                 val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
             in
@@ -184,14 +184,14 @@ fun transExp(venv, tenv) =
             end
         | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
             let
-		val {exp=explo, ty=tylo} = trexp lo
-		val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
-		val {exp=exphi, ty=tyhi} = trexp hi
-		val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
-		val venv' = tabInserta(var, (Var{ty=TIntRO}), venv)
-		val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
-		val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
-	    in
+		        val {exp=explo, ty=tylo} = trexp lo
+		        val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
+		        val {exp=exphi, ty=tyhi} = trexp hi
+		        val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
+		        val venv' = tabInserta(var, (Var{ty=TIntRO}), venv)
+		        val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
+		        val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
+	        in
                 {exp=SCAF, ty=TUnit}
             end
         | trexp(LetExp({decs, body}, _)) =
