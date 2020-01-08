@@ -142,7 +142,14 @@ fun nilExp() = Ex (CONST 0)
 fun intExp i = Ex (CONST i)
 
 fun simpleVar(acc, nivel) =
-	SCAF (*COMPLETAR*)
+    case acc of
+        InReg t => Ex (TEMP t)
+        | InFrame off =>
+            let fun aux 0 = TEMP fp
+                | aux n = MEM (BINOP (PLUS, CONST fpPrevLev, aux (n-1)))
+            in
+                Ex (MEM (BINOP (PLUS, aux(!actualLevel - nivel), CONST off)))
+            end
 
 fun varDec(acc) = simpleVar(acc, getActualLev())
 
@@ -247,3 +254,13 @@ fun binOpStrExp {left,oper,right} =
 
 
 end
+
+fun genSL 0 = []
+    | genSL n =
+        let val tmp = newtemp()
+            fun aux 0 = []
+                | aux n = MOVE(TEMP tmp, MEM(OPER(TEMP tmp, CONST(2*tigerframe.wSz)))) :: aux(n-1)
+        in
+            MOVE(tmp, MEM(OPER(PLUS(TEMP tigerframe.fp, CONST(2*tigerframe.wSz))))) :: aux n
+        end
+
