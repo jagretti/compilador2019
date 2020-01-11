@@ -153,8 +153,17 @@ fun simpleVar(acc, nivel) =
 
 fun varDec(acc) = simpleVar(acc, getActualLev())
 
-fun fieldVar(var, field) = 
-	SCAF (*COMPLETAR*)
+fun fieldVar(var, field) =
+    (* field es la posicion dentro del record de var *)
+    let
+        val v = unEx var
+        val rv = newtemp()
+    in
+        (* Muevo la exp a el registro rv, y calculo donde esta el valor del field en el frame *)
+        Ex( ESEQ(MOVE(TEMP rv, v),
+                 MEM(BINOP(PLUS, TEMP rv,
+                                 BINOP(MUL, CONST field, CONST tigerframe.wSz)))))
+    end
 
 fun subscriptVar(arr, ind) =
 let
@@ -171,7 +180,23 @@ in
 end
 
 fun recordExp l =
-	SCAF (*COMPLETAR*)
+    let val ret = newtemp()
+        fun genTemps 0 = []
+            | genTemps n = newtemp()::genTemps (n-1)
+        val regs = genTemps (length l)
+        fun aux ((e, s), t) = (MOVE (TEMP t, unEx e), s, TEMP t)
+        val lexps = map aux (ListPair.zip(l, regs))
+        val lexps' = map #1 lexps
+        val l' = Listsort.sort(fn ((_, m, _), (_, n, _)) => Int.compare(m,n)) lexps
+    in Ex ( ESEQ (
+            seq
+            (
+                lexps'
+                @
+                [EXP (externalCall("_allocRecord", CONST (length l) :: (map #3 l'))), MOVE (TEMP ret, TEMP rv)]
+            ),
+            TEMP ret))
+    end
 
 fun arrayExp{size, init} =
 let
@@ -182,13 +207,45 @@ in
 end
 
 fun callExp (name,external,isproc,lev:level,ls) = 
-	Ex (CONST 0) (*COMPLETAR*)
+     let fun menAMay 0 = TEMP fp
+        | menAMay n = MEM (BINOP (PLUS, menAMay(n-1), CONST fpPrevLev))
+        val fplev = if (#level lev) = getActualLev()
+                    then MEM (BINOP (PLUS, TEMP fp, CONST fpPrevLev))
+                    else if (#level lev) > getActualLev()
+                         then menAMay (getActualLev() - (#level lev) + 1)
+                         else TEMP fp
+
+        fun preparaArgs [] (rt,re) = (rt, re)
+        | preparaArgs (h::t) (rt,re) =  (* rt constantes,etc y re expresiones a evaluar *)
+            case h of
+            Ex(CONST s) => preparaArgs t ((CONST s)::rt, re)
+            |Ex(NAME s) => preparaArgs t ((NAME s)::rt, re)
+            |Ex(TEMP s) => preparaArgs t ((TEMP s)::rt, re)
+            |_ =>
+                let
+                    val t' = newtemp()
+                in preparaArgs t ((TEMP t')::rt, (MOVE(TEMP t', unEx h))::re)
+                end
+
+        val (ta, ls') = preparaArgs (ls) ([],[]) (* no hacemos rev, ya que se preparan al reves en preparaArgs *)
+        (* extern=true significa que la funcion es de runtime por lo cual no se pasara el fp *)
+        val ta' = if extern then ta else fplev::ta
+    in
+        if isproc (* La funcion no devuelve nada (TUnit) *)
+        then Nx (seq (ls'@[EXP(CALL(NAME name, ta'))]))
+        else let
+                val tmp = newtemp()
+             in
+                Ex (ESEQ ( seq(ls'@[EXP(CALL(NAME name, ta')), MOVE(TEMP tmp, TEMP rv)]), TEMP tmp))
+             end
+    end
 
 fun letExp ([], body) = Ex (unEx body)
  |  letExp (inits, body) = Ex (ESEQ(seq inits,unEx body))
 
 fun breakExp() = 
-	SCAF (*COMPLETAR*)
+    let val ts = topSalida()
+    in Nx(JUMP(NAME ts, [ts])) end
 
 fun seqExp ([]:exp list) = Nx (EXP(CONST 0))
 	| seqExp (exps:exp list) =
@@ -224,35 +281,143 @@ in
 end
 
 fun forExp {lo, hi, var, body} =
-	SCAF (*COMPLETAR*)
+    let val var' = unEx var
+        val (l1,l2,sal) = (newlabel(), newlabel(), topSalida())
+    in
+        Nx (seq (case hi of
+            Ex (CONST n) =>
+                if n<valOf(Int.maxInt) (* Parche para el caso en que n=maxInt *) 
+                then [ MOVE(var',unEx lo),
+                       JUMP(NAME l2,[l2]),
+                       LABEL l1, unNx body,
+                       MOVE(var',BINOP(PLUS,var',CONST 1)),
+                       LABEL l2, CJUMP(GT,var',CONST n,sal,l1),
+                       LABEL sal ]
+                else [ MOVE(var',unEx lo), (* Si n=maxInt entonces debo hacer al menos una iteraciÃ³n y tener como condiciÃ³n de salida que var'=n, ya que nunca va a ser mayor. *)
+                       LABEL l2, unNx body, CJUMP(EQ,var',CONST n,sal,l1),
+                       LABEL l1, MOVE(var',BINOP(PLUS,var',CONST 1)),
+                       JUMP(NAME l2,[l2]),
+                       LABEL sal ]
+           | _ => 
+                let val t = newtemp()
+                in [ MOVE(var',unEx lo),
+                     MOVE(TEMP t, unEx hi),
+                     CJUMP(LE,var',TEMP t,l2,sal),
+                     LABEL l2, unNx body,
+                     CJUMP(EQ,TEMP t,var',sal,l1), (* Parche para el caso en que hi=maxInt *)
+                     LABEL l1, MOVE(var',BINOP(PLUS,var',CONST 1)),
+                     JUMP(NAME l2,[l2]),
+                     LABEL sal ]
+                end ))
+    end
 
 fun ifThenExp{test, then'} =
-	SCAF (*COMPLETAR*)
+    let
+        val (t, f) = (newlabel(), newlabel())
+        val test' = unCx test
+        val then'' = unNx then'
+    in
+        Nx (seq [test'(t,f), LABEL t, then'', LABEL f])
+    end
 
 fun ifThenElseExp {test,then',else'} =
-	SCAF (*COMPLETAR*)
+  let
+        val (t, f, final) = (newlabel(), newlabel(), newlabel())
+        val temp = newtemp()
+        val test' = unCx test
+        val then'' = unEx then'
+        val else'' = unEx else'
+    in
+        Ex (ESEQ (seq ([test'(t,f),
+                        LABEL t, 
+                        MOVE(TEMP temp, then''),
+                        JUMP(NAME final, [final]),
+                        LABEL f,
+                        MOVE(TEMP temp, else''),
+                        LABEL final]),
+                TEMP temp))
+    end
 
 fun ifThenElseExpUnit {test,then',else'} =
-	SCAF (*COMPLETAR*)
+    let
+        val (t, f, final) = (newlabel(), newlabel(), newlabel())
+        val temp = newtemp()
+    in
+        Nx (seq ([unCx(test) (t,f),
+                    LABEL t, unNx(then'),
+                    JUMP (NAME final, [final]),
+                    LABEL f,
+                    unNx(else'),
+                    LABEL final]))
+    end
 
 fun assignExp{var, exp} =
-let
-	val v = unEx var
-	val vl = unEx exp
-in
-	Nx (MOVE(v,vl))
-end
+    let
+	    val v = unEx var
+	    val vl = unEx exp
+    in
+	    Nx (MOVE(v,vl))
+    end
 
-fun binOpIntExp {left, oper, right} = 
-	SCAF (*COMPLETAR*)
+fun binOpIntExp {left, oper, right} =
+    let val l = unEx left
+        val r = unEx right
+        val oper' = case oper of
+                        PlusOp => PLUS
+                       |MinusOp => MINUS
+                       |TimesOp => MUL
+                       |DivideOp => DIV
+                       |_ => raise Fail "Unknown operator"
+    in 
+        Ex(BINOP(oper',l,r))
+    end
 
 fun binOpIntRelExp {left,oper,right} =
-	SCAF (*COMPLETAR*)
-
-fun binOpStrExp {left,oper,right} =
-	SCAF (*COMPLETAR*)
-
-
+    let val l = unEx left
+        val r = unEx right
+        val rta = newtemp()
+        val (t,f) = (newlabel(),newlabel())
+        val oper' = case oper of
+                        EqOp => EQ
+                       |NeqOp => NE
+                       |LtOp => LT
+                       |GtOp => GT
+                       |LteOp => LE
+                       |GteOp => GE
+                       |_ => raise Fail "Unknown operator"
+    in
+        Ex(ESEQ(seq[MOVE(TEMP rta,CONST 0),
+                    CJUMP(oper',l,r,t,f),
+                    LABEL t, MOVE(TEMP rta,CONST 1),
+                    LABEL f],
+                TEMP rta))
+    end
+             
+fun binOpStrExp {left,oper,right} = 
+    let
+	    val l = unEx left
+	    val r = unEx right
+	    val (tl,tr,rta) = (newtemp(),newtemp(),newtemp())
+        val (t,f) = (newlabel(),newlabel())
+        val oper' = case oper of
+                        EqOp => EQ
+                       |NeqOp => NE
+                       |LtOp => LT
+                       |GtOp => GT
+                       |LteOp => LE
+                       |GteOp => GE
+                       |_ => raise Fail "Unknown operator"
+    in
+	    Ex (ESEQ(seq [MOVE(TEMP tl,l),
+	                  MOVE(TEMP tr,r),
+	                  EXP(externalCall("_stringCompare", [TEMP tl, TEMP tr])),
+                      MOVE(TEMP rta,CONST 0),
+	                  CJUMP(oper',TEMP rv,CONST 0,t,f),
+                      LABEL t, MOVE(TEMP rta,CONST 1),
+                      LABEL f],
+	             TEMP rta))
+    end
+ 
 end
 
 fun genSL 0 = []
