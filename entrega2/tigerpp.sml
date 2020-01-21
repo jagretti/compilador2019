@@ -215,6 +215,25 @@ val ppstrm =
 	}
 
 fun exprAst e =
-	(ppexpr ppstrm e;
-	flush_ppstream ppstrm;
-	TextIO.output(TextIO.stdOut, "\n"))
+    (ppexpr ppstrm e;
+    flush_ppstream ppstrm;
+    TextIO.output(TextIO.stdOut, "\n"))
+
+(* 
+fun prettyPrintTipo (TNil) = "TNil"
+    | prettyPrintTipo (TUnit) = "TUnit"
+    | prettyPrintTipo (TInt) = "TInt"
+    | prettyPrintTipo (TIntRO) = "TIntRO"
+    | prettyPrintTipo (TString) = "TString"
+    | prettyPrintTipo (TArray(r, uniq)) = "TArray " 
+    | prettyPrintTipo (TRecord(l, uniq)) = "TRecord "
+    | prettyPrintTipo (TTipo(s)) =  "TTipo " ^ s
+    (*| prettyPrintTipo (TIntRO) = print "TIntRO\n"*)
+
+*)
+
+(*
+fun prettyPrintEnv (VIntro) = print "VIntro\n"
+    | prettyPrintEnv (Var({ty = t})) =  (print "Var"; prettyPrintTipo(t))
+    | prettyPrintEnv (Func({label, formals, result, ...})) = (print "Func " ; print label; List.map prettyPrintTipo formals; prettyPrintTipo(result))
+*)
