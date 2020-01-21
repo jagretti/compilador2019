@@ -164,10 +164,22 @@ fun transExp(venv, tenv) =
                                 val exprs = map (fn{exp, ty} => exp) lexti
                                 val {exp, ty=tipo} = hd(rev lexti)
                         in      { exp=seqExp (exprs), ty=tipo } end
-                | trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-                        {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+                (* 
+		| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
+		  	{exp=SCAF, ty=TUnit} (*COMPLETAR*)  
+		*)
                 | trexp(AssignExp({var, exp}, nl)) =
-                        {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+		  let
+                      val {exp=varexp, ty=vartype} = trvar(var, nl)
+		      val _ = case vartype of
+			      TIntRO => error("trexp::AssingExp - La variable es readonly",nl)
+			      | _ => ()
+                      val {exp=expexp, ty=exptype} = trexp exp
+                      val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
+		  in
+                      print "Pase por AssignExp!!\n";
+                      {exp=SCAF, ty=TUnit}
+		  end
                 | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
                         let val {exp=testexp, ty=tytest} = trexp test
                             val {exp=thenexp, ty=tythen} = trexp then'
