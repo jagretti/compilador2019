@@ -287,8 +287,21 @@ fun transExp(venv, tenv) =
 		    end
 		    *)
                     (venv, tenv, []) (*COMPLETAR*)
-                | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
-                        (venv, tenv, []) (*COMPLETAR*)
+                  | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
+		    (*
+		    let
+			val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
+			val tyv = case tabBusca(s, tenv) of
+				      SOME t' => t'
+				    | NONE => error("trdec: Tipo indefinido "^s , pos)
+			val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^tigerpp.prettyPrintTipo(tyv), pos)
+			val venv' = tabInserta(name, (Var{ty=tyv}), venv)
+		    in
+			print "Pase por trdec::VarDec2!!\n";
+			(venv', tenv, [])
+		    end
+		    *)
+                    (venv, tenv, []) (*COMPLETAR*)
                 | trdec (venv,tenv) (FunctionDec fs) =
 		  (*
   		  let (* Buscar si hay nombres repetidos. Recordar que no se pueden sobreescribir funciones dentro de un mismo batch *)
