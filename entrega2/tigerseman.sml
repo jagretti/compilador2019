@@ -373,10 +373,12 @@ fun transExp(venv, tenv) =
 		  (venv, tenv, []) (*COMPLETAR*)
         in trexp end
 fun transProg ex =
-        let     val main =
-                                LetExp({decs=[FunctionDec[({name="_tigermain", params=[],
-                                                                result=NONE, body=ex}, 0)]],
-                                                body=UnitExp 0}, 0)
-                val _ = transExp(tab_vars, tab_tipos) main
-        in      print "bien!\n" end
+    let
+	val main = LetExp({decs=[FunctionDec[({name="_tigermain",
+					       params=[],
+					       result=SOME "int", (* Tiger's main funcion return an int *)
+					       body=ex}, 0)]],
+			   body=UnitExp 0}, 0)
+        val _ = transExp(tab_vars, tab_tipos) main
+    in      print "bien!\n" end
 end
