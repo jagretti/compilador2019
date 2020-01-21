@@ -357,7 +357,20 @@ fun transExp(venv, tenv) =
 	          end *)
                   (venv, tenv, []) (*COMPLETAR*) 
                 | trdec (venv,tenv) (TypeDec ts) =
-                        (venv, tenv, []) (*COMPLETAR*)
+		  (* 
+		  let val sortedNames = Listsort.sort (fn (({name=x,ty=_},_), ({name=y,ty=_},_)) => if x<y then LESS else (if x>y then GREATER else EQUAL)) ts
+                      val _ = List.foldr (* Chequea que no hay dos seguidos iguales en sortedNames *)
+			          (fn (t1 as ({name=n1,ty=_},posx), ({name=n2,ty=_},_)) => if n1=n2 then error("Se definio dos veces el tipo "^n1^" en un mismo batch.", posx) else t1)
+				  ({name="",ty=NameTy ""},0) (* Invento un tipo con nombre "" que no va a ser igual a ninguno de los que se definan. *)
+				  sortedNames
+                      val ltsinpos = List.map (fn (x,pos) => x) ts
+                      val tenv' = tigertopsort.fijaTipos ltsinpos tenv
+	          in
+                      print "Pase por trdec::TypeDec!!\n";
+	              (venv, tenv', [])
+	          end
+		  *) 
+		  (venv, tenv, []) (*COMPLETAR*)
         in trexp end
 fun transProg ex =
         let     val main =
