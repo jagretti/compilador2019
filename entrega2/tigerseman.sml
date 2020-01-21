@@ -77,7 +77,7 @@ fun transExp(venv, tenv) =
                 | trexp(NilExp _)= {exp=nilExp(), ty=TNil}
                 | trexp(IntExp(i, _)) = {exp=intExp i, ty=TInt}
                 | trexp(StringExp(s, _)) = {exp=stringExp(s), ty=TString}
-                | trexp(CallExp({func, args}, nl)) =
+                | trexp(CallExp({func, args}, nl)) = (* COMPLETAR EXP *)
 		  let
                       val (argtypes, resultstype) = case tabBusca(func, venv) of
 							SOME (Func {formals=formals, result=result, level=_, label=_, extern=_}) => (formals,result)
@@ -168,7 +168,7 @@ fun transExp(venv, tenv) =
 		| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
 		  	{exp=SCAF, ty=TUnit} (*COMPLETAR*)  
 		*)
-                | trexp(AssignExp({var, exp}, nl)) =
+                | trexp(AssignExp({var, exp}, nl)) = (* COMPLETAR EXP *)
 		  let
                       val {exp=varexp, ty=vartype} = trvar(var, nl)
 		      val _ = case vartype of
@@ -206,8 +206,20 @@ fun transExp(venv, tenv) =
                                 else if tipoReal (#ty ttest) <> TInt then error("Error de tipo en la condición", nl)
                                 else error("El cuerpo de un while no puede devolver un valor", nl)
                         end
-                | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
-                        {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+                | trexp(ForExp({var, escape, lo, hi, body}, nl)) = (* COMPLETAR EXP *)
+		  let
+		      (*
+		      val {exp=explo, ty=tylo} = trexp lo
+		      val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
+		      val {exp=exphi, ty=tyhi} = trexp hi
+		      val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
+		      val venv' = tabInserta(var, (Var{ty=TInt}), venv)
+		      val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
+		      val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
+		      *)
+	          in
+                      {exp=SCAF, ty=TUnit}
+		  end
                 | trexp(LetExp({decs, body}, _)) =
                         let
                                 fun aux (d, (v, t, exps1)) =
