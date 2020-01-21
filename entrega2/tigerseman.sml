@@ -275,7 +275,18 @@ fun transExp(venv, tenv) =
 		    end
                   (* {exp=SCAF, ty=TUnit} (*COMPLETAR*) *)
                 and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
-                        (venv, tenv, []) (*COMPLETAR*)
+		    (*
+		    let
+			val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
+			val _ = case tyinit of TNil => error("Variable "^name^" inicializada en nil sin tipar.",nl)  (* var a := nil, tiene que dar error, test45.tig *)
+					      |_ => ()
+			val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
+		    in
+			print "Pase por trdec::VarDec1!!\n";
+			(venv', tenv, [])
+		    end
+		    *)
+                    (venv, tenv, []) (*COMPLETAR*)
                 | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
                         (venv, tenv, []) (*COMPLETAR*)
                 | trdec (venv,tenv) (FunctionDec fs) =
