@@ -229,7 +229,7 @@ fun callExp (name,external,isproc,lev:level,ls) =
 
         val (ta, ls') = preparaArgs (ls) ([],[]) (* no hacemos rev, ya que se preparan al reves en preparaArgs *)
         (* extern=true significa que la funcion es de runtime por lo cual no se pasara el fp *)
-        val ta' = if extern then ta else fplev::ta
+        val ta' = if external then ta else fplev::ta
     in
         if isproc (* La funcion no devuelve nada (TUnit) *)
         then Nx (seq (ls'@[EXP(CALL(NAME name, ta'))]))
@@ -417,15 +417,5 @@ fun binOpStrExp {left,oper,right} =
                       LABEL f],
 	             TEMP rta))
     end
- 
+
 end
-
-fun genSL 0 = []
-    | genSL n =
-        let val tmp = newtemp()
-            fun aux 0 = []
-                | aux n = MOVE(TEMP tmp, MEM(OPER(TEMP tmp, CONST(2*tigerframe.wSz)))) :: aux(n-1)
-        in
-            MOVE(tmp, MEM(OPER(PLUS(TEMP tigerframe.fp, CONST(2*tigerframe.wSz))))) :: aux n
-        end
-
