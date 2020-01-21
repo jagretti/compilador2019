@@ -235,7 +235,7 @@ fun transExp(venv, tenv) =
                         end
                 | trexp(BreakExp nl) =
                         {exp=SCAF, ty=TUnit} (* COMPLETAR EXP *)
-                | trexp(ArrayExp({typ, size, init}, nl)) =
+                | trexp(ArrayExp({typ, size, init}, nl)) =  (* COMPLETAR EXP *)
 		  let
                       val {exp=sizeexp,ty=sizetype} = trexp size
                       val {exp=initexp,ty=inittype} = trexp init
@@ -251,8 +251,18 @@ fun transExp(venv, tenv) =
 		  end
                 and trvar(SimpleVar s, nl) =
                         {exp=SCAF, ty=TUnit} (*COMPLETAR*)
-                | trvar(FieldVar(v, s), nl) =
-                        {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+                  | trvar(FieldVar(v, s), nl) =
+		    let
+			val {exp=varexp, ty=vartype} = trvar(v, nl)
+			val vtype = case vartype of
+					TRecord (ls, _) =>
+					(case List.filter (fn x => #1x = s) ls of
+                                             [] => error("trvar: El nombre de la variable no existe en este record "^s, nl)
+                                           | (x::_) => #2x)
+                                      | _ => ( (* tigerpp.prettyPrintTipo(vartype) ; *) error("trvar: No se puede indexar por que no es Record", nl))
+		    in
+			{exp=SCAF, ty=vtype}
+		    end
                 | trvar(SubscriptVar(v, e), nl) =
                         {exp=SCAF, ty=TUnit} (*COMPLETAR*)
                 and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
