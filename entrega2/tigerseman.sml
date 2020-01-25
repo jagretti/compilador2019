@@ -162,14 +162,15 @@ fun transExp(venv, tenv) =
                         {exp=recordExp lf, ty=tyr}
                 end
         | trexp(SeqExp(s, nl)) =
-                let     val lexti = map trexp s
-                        val exprs = map (fn{exp, ty} => exp) lexti
-                        val {exp, ty=tipo} = hd(rev lexti)
-                in      { exp=seqExp (exprs), ty=tipo } end
-        (* 
-        | trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)  
-        *)
+            let
+                val lexti = map trexp s
+                val exprs = map (fn{exp, ty} => exp) lexti
+                val {exp, ty=tipo} = hd(rev lexti)
+            in
+                { exp=seqExp (exprs), ty=tipo } 
+            end
+        (*| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
+            {exp=SCAF, ty=TUnit} (*COMPLETAR*)  *)
         | trexp(AssignExp({var, exp}, nl)) = (* COMPLETAR EXP *)
             let
                 val {exp=varexp, ty=vartype} = trvar(var, nl)
@@ -180,7 +181,7 @@ fun transExp(venv, tenv) =
                 val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
             in
                 print "Pase por AssignExp!!\n";
-                {exp=SCAF, ty=TUnit}
+                {exp=assignExp({var=varexp, exp=expexp}), ty=TUnit}
             end
         | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
                 let val {exp=testexp, ty=tytest} = trexp test
@@ -210,7 +211,7 @@ fun transExp(venv, tenv) =
                 end
         | trexp(ForExp({var, escape, lo, hi, body}, nl)) = (* COMPLETAR EXP *)
             let
-                (*
+            (*
                 val {exp=explo, ty=tylo} = trexp lo
                 val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
                 val {exp=exphi, ty=tyhi} = trexp hi
@@ -218,7 +219,7 @@ fun transExp(venv, tenv) =
                 val venv' = tabInserta(var, (Var{ty=TInt}), venv)
                 val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
                 val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
-                *)
+            *)
             in
                 {exp=SCAF, ty=TUnit}
             end
@@ -236,7 +237,7 @@ fun transExp(venv, tenv) =
                 {exp=seqExp(expdecs@[expbody]), ty=tybody}
             end
         | trexp(BreakExp nl) =
-                {exp=SCAF, ty=TUnit} (* COMPLETAR EXP *)
+            {exp=SCAF, ty=TUnit} (* COMPLETAR EXP *)
         | trexp(ArrayExp({typ, size, init}, nl)) =  (* COMPLETAR EXP *)
             let
                 val {exp=sizeexp,ty=sizetype} = trexp size
