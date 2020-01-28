@@ -171,7 +171,7 @@ fun transExp(venv, tenv) =
             end
         (*| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
             {exp=SCAF, ty=TUnit} (*COMPLETAR*)  *)
-        | trexp(AssignExp({var, exp}, nl)) = (* COMPLETAR EXP *)
+        | trexp(AssignExp({var, exp}, nl)) = 
             let
                 val {exp=varexp, ty=vartype} = trvar(var, nl)
                 val _ = case vartype of
@@ -184,44 +184,44 @@ fun transExp(venv, tenv) =
                 {exp=assignExp({var=varexp, exp=expexp}), ty=TUnit}
             end
         | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
-                let val {exp=testexp, ty=tytest} = trexp test
-                    val {exp=thenexp, ty=tythen} = trexp then'
-                    val {exp=elseexp, ty=tyelse} = trexp else'
-                in
-                    if tipoReal tytest=TInt andalso tiposIguales tythen tyelse then
-                        {exp=if tipoReal tythen=TUnit then ifThenElseExpUnit {test=testexp,then'=thenexp,else'=elseexp} else ifThenElseExp {test=testexp,then'=thenexp,else'=elseexp}, ty=tythen}
-                    else error("Error de tipos en if" ,nl)
-                end
+            let val {exp=testexp, ty=tytest} = trexp test
+                val {exp=thenexp, ty=tythen} = trexp then'
+                val {exp=elseexp, ty=tyelse} = trexp else'
+            in
+                if tipoReal tytest=TInt andalso tiposIguales tythen tyelse then
+                    {exp=if tipoReal tythen=TUnit then ifThenElseExpUnit {test=testexp,then'=thenexp,else'=elseexp} else ifThenElseExp {test=testexp,then'=thenexp,else'=elseexp}, ty=tythen}
+                else error("Error de tipos en if" ,nl)
+            end
         | trexp(IfExp({test, then', else'=NONE}, nl)) =
-                let val {exp=exptest,ty=tytest} = trexp test
-                    val {exp=expthen,ty=tythen} = trexp then'
-                in
-                        if tipoReal tytest=TInt andalso tythen=TUnit then
-                        {exp=ifThenExp{test=exptest, then'=expthen}, ty=TUnit}
-                        else error("Error de tipos en if", nl)
-                end
+            let val {exp=exptest,ty=tytest} = trexp test
+                val {exp=expthen,ty=tythen} = trexp then'
+            in
+                if tipoReal tytest=TInt andalso tythen=TUnit then
+                {exp=ifThenExp{test=exptest, then'=expthen}, ty=TUnit}
+                else error("Error de tipos en if", nl)
+            end
         | trexp(WhileExp({test, body}, nl)) =
-                let
-                        val ttest = trexp test
-                        val tbody = trexp body
-                in
-                        if tipoReal (#ty ttest) = TInt andalso #ty tbody = TUnit then {exp=whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()}, ty=TUnit}
-                        else if tipoReal (#ty ttest) <> TInt then error("Error de tipo en la condición", nl)
-                        else error("El cuerpo de un while no puede devolver un valor", nl)
-                end
-        | trexp(ForExp({var, escape, lo, hi, body}, nl)) = (* COMPLETAR EXP *)
             let
-            (*
+                val ttest = trexp test
+                val tbody = trexp body
+            in
+                if tipoReal (#ty ttest) = TInt andalso #ty tbody = TUnit then {exp=whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()}, ty=TUnit}
+                else if tipoReal (#ty ttest) <> TInt then error("Error de tipo en la condición", nl)
+                else error("El cuerpo de un while no puede devolver un valor", nl)
+            end
+        | trexp(ForExp({var, escape, lo, hi, body}, nl)) = 
+            let
                 val {exp=explo, ty=tylo} = trexp lo
                 val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
                 val {exp=exphi, ty=tyhi} = trexp hi
                 val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
-                val venv' = tabInserta(var, (Var{ty=TInt}), venv)
+		        val varEntry = {ty=TIntRO, level=getActualLev(), access=allocLocal (topLevel()) (!escape)}
+                val venv' = tabInserta(var, Var varEntry, venv)
                 val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
                 val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
-            *)
+		        val expvar = simpleVar((#access)varEntry, (#level)varEntry)
             in
-                {exp=SCAF, ty=TUnit}
+                {exp=forExp{hi=exphi, lo=explo, body=expbody, var=expvar}, ty=TUnit}
             end
         | trexp(LetExp({decs, body}, _)) =
             let
@@ -238,7 +238,7 @@ fun transExp(venv, tenv) =
             end
         | trexp(BreakExp nl) =
             {exp=breakExp(), ty=TUnit}
-        | trexp(ArrayExp({typ, size, init}, nl)) =  (* COMPLETAR EXP *)
+        | trexp(ArrayExp({typ, size, init}, nl)) =  
             let
                 val {exp=sizeexp,ty=sizetype} = trexp size
                 val {exp=initexp,ty=inittype} = trexp init
@@ -253,18 +253,25 @@ fun transExp(venv, tenv) =
                 {exp=arrayExp{size=sizeexp, init=initexp}, ty=TArray (ta, ur)}
             end
         and trvar(SimpleVar s, nl) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let 
+                val {exp=expvar, ty=vartype} = case tabBusca(s, venv) of 
+                    SOME (Var {ty=ty, access=access, level=level}) => {exp=simpleVar(access,level), ty=ty}
+                    | _ => error("Variable "^s^" no definida en el scope", nl) 
+            in 
+                (* tigerpp.prettyPrintTipo(vartype); *) 
+                {exp=expvar, ty=vartype} 
+            end
         | trvar(FieldVar(v, s), nl) =
             let
                 val {exp=varexp, ty=vartype} = trvar(v, nl)
-                val vtype = case vartype of
+                val (vtype, pos) = case vartype of
                                 TRecord (ls, _) =>
                                     (case List.filter (fn x => #1x = s) ls of
                                         [] => error("trvar: El nombre de la variable no existe en este record "^s, nl)
-                                        | (x::_) => #2x)
+                                        | (x::_) => (#2x, #3x))
                                 | _ => ( (* tigerpp.prettyPrintTipo(vartype) ; *) error("trvar: No se puede indexar por que no es Record", nl))
             in
-                {exp=SCAF, ty=vtype}
+                {exp=fieldVar(varexp, pos), ty=vtype}
             end
         | trvar(SubscriptVar(v, e), nl) =
             let
@@ -273,23 +280,24 @@ fun transExp(venv, tenv) =
                 val _ = if tiposIguales exptype (TInt) then () else error("trvar::SubscriptVar El indice debe ser entero pero es "(*^tigerpp.prettyPrintTipo(exptype)*), nl)
             in
                 case vartype of
-                    TArray (ty, _) => {exp=SCAF, ty=ty}
+                    TArray (ty, _) => {exp=subscriptVar(varexp, expexp) , ty=ty}
                     | _ => error("trvar: Indexando algo que no es un arreglo", nl)
             end
-            (* {exp=SCAF, ty=TUnit} (*COMPLETAR*) *)
-        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) =
-                (*
+        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = (*TERMINAR!!!*)
             let
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
-                val _ = case tyinit of TNil => error("Variable "^name^" inicializada en nil sin tipar.",nl)  (* var a := nil, tiene que dar error, test45.tig *)
-                            |_ => ()
-                val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
+                val _ =
+                    case tipoReal(tyinit) of
+                        TFunc _ => error ("trdec(VarDec): una variable no puede ser funcion! 1", pos)
+                        | TTipo _ => error ("trdec(VarDec): esto no deberia pasar! 1", pos)
+                        | TNil => error ("trdec(VarDec): una variable no se puede inicializar en nil (cuando no tiene tipo)", pos)
+                        | _ => ()
+                val varEntry = {ty=tyinit, access=allocLocal (topLevel()) (!escape), level = getActualLev()}
+                val venv' = tabInserta(name, Var varEntry, venv)
             in
                 print "Pase por trdec::VarDec1!!\n";
                 (venv', tenv, [])
             end
-                *)
-                (venv, tenv, []) (*COMPLETAR*)
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
             (*
             let
