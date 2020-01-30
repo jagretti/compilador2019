@@ -286,12 +286,9 @@ fun transExp(venv, tenv) =
         and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = (*TERMINAR!!!*)
             let
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
-                val _ =
-                    case tipoReal(tyinit) of
-                        TFunc _ => error ("trdec(VarDec): una variable no puede ser funcion! 1", pos)
-                        | TTipo _ => error ("trdec(VarDec): esto no deberia pasar! 1", pos)
-                        | TNil => error ("trdec(VarDec): una variable no se puede inicializar en nil (cuando no tiene tipo)", pos)
-                        | _ => ()
+		val _ = case tyinit of
+			    TNil => error("Variable "^name^" inicializada en nil sin tipar.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
+                           |_ => ()  (* que otros casos de tipos no son soportados para ser "tipos" de variables ?*)
                 val varEntry = {ty=tyinit, access=allocLocal (topLevel()) (!escape), level = getActualLev()}
                 val venv' = tabInserta(name, Var varEntry, venv)
             in
