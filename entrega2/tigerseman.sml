@@ -3,7 +3,7 @@ struct
 
 open tigerabs
 open tigersres
-(* open tigertopsort *)
+open tigertopsort
 open tigertrans
 open tigerpp
 
@@ -311,61 +311,72 @@ fun transExp(venv, tenv) =
                 (venv', tenv, [])
             end
         | trdec (venv,tenv) (FunctionDec fs) =
-            (*
+ (*COMPLETADO!*)
             let (* Buscar si hay nombres repetidos. Recordar que no se pueden sobreescribir funciones dentro de un mismo batch *)
                 fun reps [] = false
-                    | reps (({name,...},nl) :: t) = if List.exists(fn ({name = x,...},_) => x = name) t then true else reps t
-                val _ = if reps fs then raise Fail ("trdec: Nombres repetidos\n") else ()
+                |   reps (({name,...},nl) :: t) = if List.exists (fn ({name = x,...},_) => x = name) t then true else reps t
+                val _ = if reps fs then raise Fail ("trdec(FunctionDec): Nombres repetidos\n") else ()
 
                 fun tyToTipo [] = []
-                | tyToTipo ({typ=NameTy s, ... } :: ss) =
-                    (case tabBusca(s, tenv) of
-                        SOME t => (t :: tyToTipo ss)
-                        | _ => raise Fail ("trdec: el tipo "^s^" es inexistente\n"))
-                | tyToTipo _ = raise Fail ("trdec: esto no deberia pasar!\n") (* no puede pasar ya que la sintaxis de tiger no permite que los argumentos tengan explicitamente tipo record o array. Para ello hay que definir una etiqueta *)
+                    | tyToTipo ({typ=NameTy s, ... } :: ss) =
+                        (case tabBusca(s, tenv) of
+                            SOME t => (t :: tyToTipo ss)
+                            | _ => raise Fail ("trdec(FunctionDec): el tipo "^s^" es inexistente\n"))
+                    | tyToTipo _ = raise Fail ("trdec(FunctionDec): esto no deberia pasar!\n") (* no puede pasar ya que la sintaxis de tiger no permite que los argumentos tengan explicitamente tipo record o array. Para ello hay que definir una etiqueta *)
 
                 fun aux venv' [] = venv'
-                | aux venv' (({name, params, result, ...}, nl)::fss) =
-                    let val resultType = case result of
-                                            NONE => TUnit
-                                            | SOME t => case tabBusca(t, tenv) of
-                                                            NONE => error ("trdec: (FunctionDec) (aux): el tipo "^t^" no existe!", nl)
-                                                            | SOME t' => t'
-                        (* extern=false ya que las funciones externas se definen en runtime *)
-                        val entry = Func {level=(), label=tigertemp.newlabel(), formals=tyToTipo params, result=resultType, extern=false}
-                        val venv'' = tabRInserta(name, entry, venv')
-            in
-                aux venv'' fss
-            end
-            fun addParams venv [] = ()
-            | addParams venv (({name, params, body, ...}, nl)::fss) =
-                let
-                    val tipos = tyToTipo params
-                    val nombres = map #name params
-                    fun addParam [] [] venv = venv
-                    | addParam (n::ns) (t::ts) venv = addParam ns ts (tabRInserta(n,Var{ty=t},venv))
-                    | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
-                    val venv' = addParam nombres tipos venv
-                    val {ty = tyBody,...} = transExp (venv',tenv) body
-                    val tyResult = case tabBusca(name,venv) of
-                                    NONE => error("trdec: Funcion no declarada "^name ,nl)
-                                    | SOME (Func{result,...}) => result
-                                    | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
-                    (* val _ = printTipo tyBody
-                    val _ = printTipo tyResult *)
-                    val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^tigerpp.prettyPrintTipo(tyResult)^" y el tipo de su cuerpo "^tigerpp.prettyPrintTipo(tyBody)^" no coinciden",nl)
-                in
-                    addParams venv fss
-                end
-            val venv' = aux venv fs
-            val _ = addParams venv' fs
-        in
-            print "Pase por trdec::FunctionDec!!\n";
-            (venv', tenv, [])
-        end *)
-        (venv, tenv, []) (*COMPLETAR*) 
+                    | aux venv' (({name, params, result, ...}, nl)::fss) =
+                        let val resultType = case result of
+                                                NONE => TUnit
+                                                | SOME t => case tabBusca(t, tenv) of
+                                                                NONE => error ("trdec(FunctionDec) (aux): el tipo "^t^" no existe!", nl)
+                                                                | SOME t' => t'
+                            val lab = if name = "_tigermain" then name else name^"_"^tigertemp.newlabel()^"_"^(Int.toString nl)
+                            val entry = Func {level=newLevel{parent=topLevel(), name=lab, formals=map (! o #escape) params},
+                                              label=lab,
+                                              formals=tyToTipo params, 
+                                              result=resultType, 
+                                              extern=false} (* extern=false ya que las funciones externas se definen en runtime *)
+                            val venv'' = tabRInserta(name, entry, venv')
+                        in aux venv'' fss end
+                fun addParams venv [] ci_fs = ci_fs 
+                |   addParams venv (({name,params, body, ...}, nl)::fss) ci_fs =
+                    let
+                        val tipos = tyToTipo params
+                        val nombres = map #name params
+                        val escapes = map (! o #escape) params
+                        
+                        val _ = tigertrans.preFunctionDec()
+                        val (tyResult, level) = case tabBusca(name,venv) of
+                                                   NONE => error("trdec(FunctionDec): Error interno en addParams 2",nl)
+                                                   | SOME (Func{result, level, ...}) => (result, level)
+                                                   | SOME _ => error("trdec(FunctionDec): Error interno en addParams 3",nl)
+                        val _ = pushLevel level
+
+                        fun addParam [] [] [] venv = venv
+                        |   addParam (n::ns) (t::ts) (e::es) venv = 
+                                let
+                                    val ac = allocArg (topLevel()) e  
+                                    val level = getActualLev()
+                                in addParam ns ts es (tabRInserta(n,Var{ty=t, access=ac, level=level},venv)) end
+                        |   addParam _ _ _ _ = error("trdec(FunctionDec): Error interno en addParams 1",nl)
+
+                        val venv' = addParam nombres tipos escapes venv
+                        val {exp=bexp, ty=tyBody} = transExp (venv',tenv) body
+                        (* val _ = printTipo tyBody
+                        val _ = printTipo tyResult *)
+                        val _ = if tiposIguales tyBody tyResult then () else error("trdec(FunctionDec): Los tipos de retorno de la funcion y el tipo de su body no coinciden",nl)
+                        val isproc = (tyResult = TUnit)  (* Â¿es prodecure o funcion? (utilizado para codigo intermedio) *)
+                        val ci = tigertrans.functionDec(bexp, level, isproc)
+
+                        val _ = popLevel()
+                        val _ = tigertrans.postFunctionDec()
+                    in addParams venv fss ([ci] @ ci_fs) end
+                val venv' = aux venv fs
+                val ci_fs = addParams venv' fs []
+            in (venv', tenv, ci_fs) end
+
         | trdec (venv,tenv) (TypeDec ts) =
-            (* 
             let val sortedNames = Listsort.sort (fn (({name=x,ty=_},_), ({name=y,ty=_},_)) => if x<y then LESS else (if x>y then GREATER else EQUAL)) ts
                 val _ = List.foldr (* Chequea que no hay dos seguidos iguales en sortedNames *)
                 (fn (t1 as ({name=n1,ty=_},posx), ({name=n2,ty=_},_)) => if n1=n2 then error("Se definio dos veces el tipo "^n1^" en un mismo batch.", posx) else t1)
@@ -377,8 +388,7 @@ fun transExp(venv, tenv) =
                 print "Pase por trdec::TypeDec!!\n";
                 (venv, tenv', [])
             end
-            *) 
-            (venv, tenv, []) (*COMPLETAR*)
+
 in trexp end
 fun transProg ex =
     let
