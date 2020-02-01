@@ -288,8 +288,8 @@ fun transExp(venv, tenv) =
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
                 val _ = case tyinit of
                             TNil => error("Variable "^name^" inicializada en nil sin tipar.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
-                            | TFunc =>  error("Variable "^name^" no puede ser funcion.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
-                            | TTipo =>  error("Variable "^name^" no puede ser inicializada como un tipo.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
+                            | TFunc _ =>  error("Variable "^name^" no puede ser funcion.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
+                            | TTipo _ =>  error("Variable "^name^" no puede ser inicializada como un tipo.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
                             | _ => ()  (* que otros casos de tipos no son soportados para ser "tipos" de variables ?*)
                 val varEntry = {ty=tyinit, access=allocLocal (topLevel()) (!escape), level = getActualLev()}
                 val venv' = tabInserta(name, Var varEntry, venv)
@@ -298,20 +298,18 @@ fun transExp(venv, tenv) =
                 (venv', tenv, [])
             end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
-            (*
             let
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
                 val tyv = case tabBusca(s, tenv) of
                             SOME t' => t'
                             | NONE => error("trdec: Tipo indefinido "^s , pos)
-                val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^tigerpp.prettyPrintTipo(tyv), pos)
-                val venv' = tabInserta(name, (Var{ty=tyv}), venv)
+                val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "(*^tigerpp.prettyPrintTipo(tyv)*), pos)
+		val varEntry = {ty=tyv, level=getActualLev(), access=allocLocal (topLevel()) (!escape)}
+                val venv' = tabInserta(name, (Var varEntry), venv)
             in
                 print "Pase por trdec::VarDec2!!\n";
                 (venv', tenv, [])
             end
-            *)
-            (venv, tenv, []) (*COMPLETAR*)
         | trdec (venv,tenv) (FunctionDec fs) =
             (*
             let (* Buscar si hay nombres repetidos. Recordar que no se pueden sobreescribir funciones dentro de un mismo batch *)
