@@ -215,11 +215,11 @@ fun transExp(venv, tenv) =
                 val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
                 val {exp=exphi, ty=tyhi} = trexp hi
                 val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
-		        val varEntry = {ty=TIntRO, level=getActualLev(), access=allocLocal (topLevel()) (!escape)}
+                        val varEntry = {ty=TIntRO, level=getActualLev(), access=allocLocal (topLevel()) (!escape)}
                 val venv' = tabInserta(var, Var varEntry, venv)
                 val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
                 val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
-		        val expvar = simpleVar((#access)varEntry, (#level)varEntry)
+                        val expvar = simpleVar((#access)varEntry, (#level)varEntry)
             in
                 {exp=forExp{hi=exphi, lo=explo, body=expbody, var=expvar}, ty=TUnit}
             end
@@ -286,9 +286,11 @@ fun transExp(venv, tenv) =
         and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = (*TERMINAR!!!*)
             let
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
-		val _ = case tyinit of
-			    TNil => error("Variable "^name^" inicializada en nil sin tipar.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
-                           |_ => ()  (* que otros casos de tipos no son soportados para ser "tipos" de variables ?*)
+                val _ = case tyinit of
+                            TNil => error("Variable "^name^" inicializada en nil sin tipar.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
+                            | TFunc =>  error("Variable "^name^" no puede ser funcion.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
+                            | TTipo =>  error("Variable "^name^" no puede ser inicializada como un tipo.", pos)  (* var a := nil, tiene que dar error, test45.tig *)
+                            | _ => ()  (* que otros casos de tipos no son soportados para ser "tipos" de variables ?*)
                 val varEntry = {ty=tyinit, access=allocLocal (topLevel()) (!escape), level = getActualLev()}
                 val venv' = tabInserta(name, Var varEntry, venv)
             in
