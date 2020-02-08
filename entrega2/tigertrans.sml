@@ -191,7 +191,7 @@ fun recordExp l =
     in Ex ( ESEQ (
             seq
             (
-                lexps'
+                ops
                 @
                 [EXP (externalCall("_allocRecord", CONST (length l') :: (map #2 l'))), MOVE (TEMP ret, TEMP rv)]
             ),
@@ -264,6 +264,7 @@ fun forExp {lo, hi, var, body} =
                     MOVE (index, BINOP (PLUS, index, CONST 1)),
                     JUMP (NAME l2, [l2]),
                     LABEL final])
+    end
 
 fun ifThenExp{test, then'} =
     let
@@ -328,7 +329,7 @@ fun binOpIntRelExp {left,oper,right} =
         val r = unEx right
         fun subst oper = fn (t, f) => CJUMP (oper, l, r, t, f)
     in case oper of
-        | EqOp => Cx (subst EQ)
+        EqOp => Cx (subst EQ)
         | NeqOp => Cx (subst NE)
         | LtOp => Cx (subst LT)
         | LeOp => Cx (subst LE)

@@ -3,12 +3,12 @@ struct
 
 type unique = unit ref
 datatype Tipo = TUnit
-	| TNil
-	| TInt
-	| TString
-	| TArray of Tipo * unique
-	| TRecord of (string * Tipo * int) list * unique
-	| TFunc of Tipo list * Tipo
-	| TTipo of string * Tipo option ref
+    | TNil
+    | TInt
+    | TIntRO
+    | TString
+    | TArray of Tipo ref  * unique
+    | TRecord of (string * Tipo ref * int) list * unique
+    | TTipo of string 
 
 end
