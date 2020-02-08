@@ -134,10 +134,19 @@ fun transExp(venv, tenv) =
 				val exprs = map (fn{exp, ty} => exp) lexti
 				val {exp, ty=tipo} = hd(rev lexti)
 			in	{ exp=seqExp (exprs), ty=tipo } end
-		| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+		(*| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
+			{exp=SCAF, ty=TUnit} (*COMPLETAR*)*)
 		| trexp(AssignExp({var, exp}, nl)) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+             let
+                val {exp=varexp, ty=vartype} = trvar(var, nl)
+		        val _ = case vartype of
+			        TIntRO => error("trexp::AssingExp - La variable es readonly",nl)
+			        | _ => ()
+                val {exp=expexp, ty=exptype} = trexp exp
+                val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
+            in
+                {exp=assignExp{var=varexp, exp=expexp}, ty=TUnit}
+            end
 		| trexp(IfExp({test, then', else'=SOME else'}, nl)) =
 			let val {exp=testexp, ty=tytest} = trexp test
 			    val {exp=thenexp, ty=tythen} = trexp then'
@@ -165,7 +174,21 @@ fun transExp(venv, tenv) =
 				else error("El cuerpo de un while no puede devolver un valor", nl)
 			end
 		| trexp(ForExp({var, escape, lo, hi, body}, nl)) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+		        val {exp=explo, ty=tylo} = trexp lo
+		        val _ = if tylo = TInt then () else error("trexp::ForExp - lo no es TInt",nl)
+		        val {exp=exphi, ty=tyhi} = trexp hi
+		        val _ = if tyhi = TInt then () else error("trexp::ForExp - hi no es TInt",nl)
+                val access = allocLocal (topLevel()) (!escape)
+                val level = getActualLev()
+                val varEntry = {level=level, access=access}
+		        val venv' = tabInserta(var, (VIntro varEntry), venv)
+                val var = simpleVar(access, level)
+		        val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
+		        val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
+	        in
+                {exp=forExp{lo=explo, hi=exphi, var=var, body=expbody}, ty=TUnit}
+            end
 		| trexp(LetExp({decs, body}, _)) =
 			let
 				fun aux (d, (v, t, exps1)) =
