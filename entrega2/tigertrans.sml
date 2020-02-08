@@ -180,7 +180,23 @@ in
 end
 
 fun recordExp l =
-    SCAF (*COMPLETAR*)
+    let val ret = newtemp()
+        fun genTemps 0 = []
+            | genTemps n = newtemp()::genTemps (n-1)
+        val regs = genTemps (length l)
+        fun aux ((e, s), t) = (s, TEMP t, MOVE (TEMP t, unEx e))
+        val reg2ops = map aux (ListPair.zip(l, regs))
+        val ops = map #3 reg2ops
+        val l' = Listsort.sort(fn ((m, _, _), (n, _, _)) => Int.compare(m,n)) reg2ops
+    in Ex ( ESEQ (
+            seq
+            (
+                lexps'
+                @
+                [EXP (externalCall("_allocRecord", CONST (length l') :: (map #2 l'))), MOVE (TEMP ret, TEMP rv)]
+            ),
+            TEMP ret))
+    end
 
 fun arrayExp{size, init} =
 let
@@ -190,7 +206,7 @@ in
         Ex (externalCall("allocArray", [s, i]))
 end
 
-fun callExp (name,external,isproc,lev:level,ls) =
+fun callExp (name, external, isproc, lev:level, ls) =
     Ex (CONST 0) (*COMPLETAR*)
 
 fun letExp ([], body) = Ex (unEx body)
@@ -234,7 +250,20 @@ in
 end
 
 fun forExp {lo, hi, var, body} =
-    SCAF (*COMPLETAR*)
+    let val index = unEx var
+        val (l1, l2, final) = (newlabel(), newlabel(), topSalida())
+        val t = newtemp()
+    in
+        Nx (seq [MOVE (index, unEx lo),
+                    MOVE(TEMP t, unEx hi),
+                    CJUMP (LE, index, TEMP t, l2, final),
+                    LABEL l2,
+                    unNx body,
+                    CJUMP (EQ, index, TEMP t, final, l1),
+                    LABEL l1, 
+                    MOVE (index, BINOP (PLUS, index, CONST 1)),
+                    JUMP (NAME l2, [l2]),
+                    LABEL final])
 
 fun ifThenExp{test, then'} =
     let
@@ -285,13 +314,40 @@ fun assignExp{var, exp} =
     end
 
 fun binOpIntExp {left, oper, right} =
-    SCAF (*COMPLETAR*)
+    let val l = unEx left
+        val r = unEx right
+    in case oper of
+        PlusOp => Ex (BINOP (PLUS, l, r))
+        | MinusOp => Ex (BINOP (MINUS, l, r))
+        | TimesOp => Ex (BINOP (MUL, l, r))
+        | DivideOp => Ex (BINOP (DIV, l, r))    
+    end
 
 fun binOpIntRelExp {left,oper,right} =
-    SCAF (*COMPLETAR*)
+    let val l = unEx left
+        val r = unEx right
+        fun subst oper = fn (t, f) => CJUMP (oper, l, r, t, f)
+    in case oper of
+        | EqOp => Cx (subst EQ)
+        | NeqOp => Cx (subst NE)
+        | LtOp => Cx (subst LT)
+        | LeOp => Cx (subst LE)
+        | GtOp => Cx (subst GT)
+        | GeOp => Cx (subst GE)
+    end
 
 fun binOpStrExp {left,oper,right} =
-    SCAF (*COMPLETAR*)
-
+    let val l = unEx left
+        val r = unEx right
+        fun subst oper = fn (t, f) => CJUMP (oper, ESEQ (EXP (externalCall("_stringCompare", [l, r])), TEMP rv), CONST 0, t, f)
+    in case oper of
+        EqOp => Cx (subst EQ)
+        | NeqOp => Cx (subst NE)
+        | LtOp => Cx (subst LT)
+        | LeOp => Cx (subst LE)
+        | GtOp => Cx (subst GT)
+        | GeOp => Cx (subst GE)
+        | _ => raise Fail ("No se pueden realizar operaciones aritmeticas entre dos strings!\n")
+    end
 
 end
