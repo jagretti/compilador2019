@@ -60,7 +60,23 @@ fun transExp(venv, tenv) =
 		| trexp(IntExp(i, _)) = {exp=intExp i, ty=TInt}
 		| trexp(StringExp(s, _)) = {exp=stringExp(s), ty=TString}
 		| trexp(CallExp({func, args}, nl)) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+                val (argtypes, resultstype, level, label, extern) = 
+                    case tabBusca(func, venv) of
+                        SOME (Func {formals=formals, result=result, level=level, label=label, extern=extern}) => (formals, result, level, label, extern)
+                        | _ => error("trexp::CallExp - Funcion "^func^" no definida", nl)
+                val argexplist = List.map trexp args
+                val argexplist_onlyexp = List.map (#exp) argexplist
+                val isproc = if TUnit = resultstype then true else false
+                val argexplisttypes = List.map (#ty) argexplist
+                val _ = if List.length argtypes = List.length argexplisttypes then () 
+                            else error("trexp::CallExp - Funcion "^func^" invocada con una cantidad incorrecta de argumentos!", nl)
+                val _ = List.map (fn(x, y) => if tiposIguales x y then x 
+                            else error("trexp::CallExp error de tipos", nl)) (ListPair.zip(argexplisttypes, argtypes))
+                        handle Empty => error("trexp::CallExp - Nº de args", nl)
+            in
+                {exp=callExp(label, extern, isproc, level, argexplist_onlyexp), ty=resultstype}
+            end
 		| trexp(OpExp({left, oper=EqOp, right}, nl)) =
 			let
 				val {exp=expl, ty=tyl} = trexp left
