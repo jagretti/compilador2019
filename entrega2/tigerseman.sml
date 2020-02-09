@@ -203,9 +203,21 @@ fun transExp(venv, tenv) =
 				{exp=seqExp(expdecs@[expbody]), ty=tybody}
 			end
 		| trexp(BreakExp nl) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+			{exp=breakExp(), ty=TUnit} (*COMPLETAR*)
 		| trexp(ArrayExp({typ, size, init}, nl)) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+                val {exp=sizeexp,ty=sizetype} = trexp size
+                val {exp=initexp,ty=inittype} = trexp init
+                val (ta,ur) = (case tabBusca(typ, tenv) of
+                                SOME t => (case t of
+                                            TArray (ta',ur') => (ta',ur')
+                                            | _ => error("trexp::ArrayExp - El tipo "^typ^" no es un arreglo", nl))
+                                | _ => error("trexp::ArrayExp - Tipo "^typ^" no definido", nl))
+                val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^tigerpp.prettyPrintTipo(inittype)^"no coincide con el tipo declarado "^typ, nl)
+            in
+                print "Pase por ArrayExp!!\n";
+                {exp=arrayExp{size=sizeexp, init=initexp}, ty=TArray (ta, ur)}
+            end
 		and trvar(SimpleVar s, nl) =
 			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
 		| trvar(FieldVar(v, s), nl) =

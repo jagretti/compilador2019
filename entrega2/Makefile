@@ -73,7 +73,7 @@ tigerit.uo: tigertree.uo tigertab.ui
 tigertrans.uo: tigertrans.ui tigertree.uo tigerpila.ui tigerframe.ui \
     tigerit.uo tigertemp.ui tigerabs.uo 
 tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigerpila.ui \
-    tigerabs.uo tigertrans.ui 
+    tigerabs.uo tigertrans.ui tigerpp.uo 
 tigertree.uo: tigertemp.ui 
 tigermain.uo: tigerseman.ui tigerescap.ui tigergrm.ui tigerlex.uo \
     tigerpp.uo 
