@@ -235,7 +235,15 @@ fun transExp(venv, tenv) =
                 {exp=arrayExp{size=sizeexp, init=initexp}, ty=TArray (ta, ur)}
             end
 		and trvar(SimpleVar s, nl) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            let
+                val (access, level) = 
+                    case tabBusca(s, venv) of
+                        SOME (VIntro{access, level}) => (access, level)
+                        | SOME (Var{ty, access, level}) => (access, level)                        
+                        | _ => error("Variable "^s^" no definida en el scope", nl)
+            in
+			    {exp=simpleVar(access, level), ty=TUnit} 
+            end
 		| trvar(FieldVar(v, s), nl) =
 			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
 		| trvar(SubscriptVar(v, e), nl) =
