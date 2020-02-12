@@ -256,8 +256,16 @@ fun transExp(venv, tenv) =
                     in
                         {exp=fieldVar(varexp, vindex), ty=(!vtype)}
                     end
-		| trvar(SubscriptVar(v, e), nl) =
-			{exp=SCAF, ty=TUnit} (*COMPLETAR*)
+		  | trvar(SubscriptVar(v, e), nl) =
+                    let
+                        val {exp=expexp, ty=exptype} = trexp(e)
+                        val {exp=varexp, ty=vartype} = trvar(v, nl)
+                        val _ = if tiposIguales exptype (TInt) then () else error("trvar::SubscriptVar El indice debe ser entero pero es "^tigerpp.prettyPrintTipo(exptype), nl)
+                    in
+                        case vartype of
+                            TArray (ty, _) => {exp=subscriptVar(expexp, varexp), ty=(!ty)}
+                          | _ => error("trvar: Indexando algo que no es un arreglo", nl)
+                    end
 		and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
 			(venv, tenv, []) (*COMPLETAR*)
 		| trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
