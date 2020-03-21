@@ -328,26 +328,27 @@ fun transExp(venv, tenv) =
                         val tipos = tyToTipo params
                         val nombres = map #name params
                         fun addParam [] [] venv = venv
-                          | addParam (n::ns) (field::fields) venv =
+                          | addParam (t::ts) ({typ=NameTy s, name=n, escape=escape}::fds) venv =
                             let
-                                val acc = allocArg (topLevel()) escape
+                                val acc = allocArg (topLevel()) (!escape)
                                 val lvl = getActualLev()
+                                (* val SOME toTipo = tabBusca(s, tenv) *)
                             in
-                                addParam ns ts (tabRInserta(n,Var{ty=t, access=acc, level=lvl},venv))
+                                addParam ts fds (tabRInserta(n,Var{ty=t, access=acc, level=lvl},venv))
                             end
-                        | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
-                        val venv' = addParam nombres params venv
+                          | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
+                        val venv' = addParam tipos params venv
                         val {ty = tyBody,...} = transExp (venv',tenv) body
                         val tyResult = case tabBusca(name,venv) of
-                                            NONE => error("trdec: Funcion no declarada "^name ,nl)
-                                            | SOME (Func{result,...}) => result
-                                            | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
+                                           NONE => error("trdec: Funcion no declarada "^name ,nl)
+                                         | SOME (Func{result,...}) => result
+                                         | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
                       (* val _ = printTipo tyBody
                         val _ = printTipo tyResult *)
                         val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^tigerpp.prettyPrintTipo(tyResult)^" y el tipo de su cuerpo "^tigerpp.prettyPrintTipo(tyBody)^" no coinciden",nl)
-                    in
-		                addParams venv fss
-		            end
+                     in
+		                 addParams venv fss
+		             end
                 val venv' = aux venv fs
                 val _ = addParams venv' fs
 	        in
