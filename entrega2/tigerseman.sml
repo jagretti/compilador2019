@@ -266,8 +266,20 @@ fun transExp(venv, tenv) =
                             TArray (ty, _) => {exp=subscriptVar(expexp, varexp), ty=(!ty)}
                           | _ => error("trvar: Indexando algo que no es un arreglo", nl)
                     end
-		and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
-			(venv, tenv, []) (*COMPLETAR*)
+		and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},nl)) =
+            let
+                val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
+                val _ = case tyinit of
+                            TNil => error("Variable "^name^" inicializada en nil sin tipar.",nl)  (* var a := nil, tiene que dar error, test45.tig *)
+                           |_ => ()
+                val level = getActualLev()
+                val acc = allocLocal (topLevel()) (!escape)
+                val venv' = tabInserta(name, (Var{ty=tyinit, access=acc, level=level}), venv)
+                val ci = varDec acc
+            in
+                print "Pase por trdec::VarDec1!!\n";
+                (venv', tenv, [assignExp{var=ci, exp=expinit}])
+            end
 		| trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
 			(venv, tenv, []) (*COMPLETAR*)
 		| trdec (venv,tenv) (FunctionDec fs) =
