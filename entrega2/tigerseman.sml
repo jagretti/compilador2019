@@ -301,6 +301,8 @@ fun transExp(venv, tenv) =
                     | reps (({name,...},nl) :: t) = if List.exists(fn ({name = x,...},_) => x = name) t then true else reps t
                 val _ = if reps fs then raise Fail ("trdec: Nombres repetidos\n") else ()
 
+                (* Mapea todos los ty de los parametros a sus Tipos. *)
+                (* [field] -> [Tipos] *)
                 fun tyToTipo [] = []
                     | tyToTipo ({typ=NameTy s, ... } :: ss) =
                         (case tabBusca(s, tenv) of
@@ -308,52 +310,70 @@ fun transExp(venv, tenv) =
                             | _ => raise Fail ("trdec: el tipo "^s^" es inexistente\n"))
                     | tyToTipo _ = raise Fail ("trdec: esto no deberia pasar!\n") (* no puede pasar ya que la sintaxis de tiger no permite que los argumentos tengan explicitamente tipo record o array. Para ello hay que definir una etiqueta *)
 
+                (* Chequea que todos los tipos de las funciones existan y crea los niveles e inserta las funciones en venv *)
                 fun aux venv' [] = venv'
                     | aux venv' (({name, params, result, ...}, nl)::fss) =
-                    let val resultType = case result of
+                      let
+                          val resultType = case result of
                                             NONE => TUnit
                                             | SOME t => case tabBusca(t, tenv) of
                                                             NONE => error ("trdec: (FunctionDec) (aux): el tipo "^t^" no existe!", nl)
                                                             | SOME t' => t'
-                        (* extern=false ya que las funciones externas se definen en runtime *)
-                        val lvl = newLevel {parent=topLevel(), name=name, formals=map (! o #escape) params}
-                        val entry = Func {level=lvl, label=tigertemp.newlabel(), formals=tyToTipo params, result=resultType, extern=false}
-                        val venv'' = tabRInserta(name, entry, venv')
-                    in
+                          (* extern=false ya que las funciones externas se definen en runtime *)
+                          val lvl = newLevel {parent=topLevel(), name=name, formals=map (! o #escape) params}
+                          val entry = Func {level=lvl, label=tigertemp.newlabel(), formals=tyToTipo params, result=resultType, extern=false}
+                          val venv'' = tabRInserta(name, entry, venv')
+                      in
                         aux venv'' fss
-                    end
-                fun addParams venv [] = ()
-                   | addParams venv (({name, params, body, ...}, nl)::fss) =
+                      end
+                (* *)
+                fun addParams venv [] cis = cis
+                   | addParams venv (({name, params, body, ...}, nl)::fss) cis =
                      let
                         val tipos = tyToTipo params
                         val nombres = map #name params
+                        (* Busca en venv el Tipo del resulto y el nivel. Esta informacion la agregamos en el paso anterior ejecutando aux *)
+                        val (tyResult, funcLevel)= case tabBusca(name, venv) of
+                                           NONE => error("trdec: Funcion no declarada "^name ,nl)
+                                         | SOME (Func{result, level,...}) => (result, level)
+                                         | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
+
+                        (* Para traducir el cuerpo de la función necesitamos actualizar las varaibles de entorno utilizadas por actualLevel y topPila. *)
+                        (* Al traducir el cuerpo de la función el contexto debe ser el de la función y no el actual *)
+                        (* Pregunta para Guille -> Agrega a la pila la etiqueta vacia? e incrementa la variable de entorno actualLevel*)
+                        val _ = preFunctionDec()
+                        val _ = pushLevel(funcLevel) (* actualizo pilaLevel para que topLevel() devuelva el nivel de la función *)
+
+                        (* Agrega los parametros de la funcion a venv *)
                         fun addParam [] [] venv = venv
-                          | addParam (t::ts) ({typ=NameTy s, name=n, escape=escape}::fds) venv =
+                          | addParam (t::ts) ({name=name, escape=escape,...}::fields) venv =
                             let
                                 val acc = allocArg (topLevel()) (!escape)
                                 val lvl = getActualLev()
-                                (* val SOME toTipo = tabBusca(s, tenv) *)
+                                val venv' = tabRInserta(name, Var{ty=t, access=acc, level=lvl}, venv)
                             in
-                                addParam ts fds (tabRInserta(n,Var{ty=t, access=acc, level=lvl},venv))
+                                addParam ts fields venv'
                             end
                           | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
                         val venv' = addParam tipos params venv
-                        val {ty = tyBody,...} = transExp (venv',tenv) body
-                        val tyResult = case tabBusca(name,venv) of
-                                           NONE => error("trdec: Funcion no declarada "^name ,nl)
-                                         | SOME (Func{result,...}) => result
-                                         | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
-                      (* val _ = printTipo tyBody
+                        val {ty=tyBody, exp=expBody} = transExp (venv', tenv) body
+                        (* val _ = printTipo tyBody
                         val _ = printTipo tyResult *)
                         val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^tigerpp.prettyPrintTipo(tyResult)^" y el tipo de su cuerpo "^tigerpp.prettyPrintTipo(tyBody)^" no coinciden",nl)
+                        val isProc = (tyResult = TUnit)
+                        val ci = functionDec(expBody, funcLevel, isProc)
+
+                        (* Retornamos al nivel y levelPila original. *)
+                        val _ = popLevel()
+                        val _ = postFunctionDec()
                      in
-		                 addParams venv fss
+		                 addParams venv fss ([ci] @ cis)
 		             end
                 val venv' = aux venv fs
-                val _ = addParams venv' fs
+                val cis = addParams venv' fs []
 	        in
                 print "Pase por trdec::FunctionDec!!\n";
-                (venv', tenv, [])
+                (venv', tenv, cis)
 	        end
 		| trdec (venv,tenv) (TypeDec ts) =
 			(venv, tenv, []) (*COMPLETAR*)
