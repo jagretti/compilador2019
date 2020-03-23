@@ -4,6 +4,7 @@ struct
 open tigerabs
 open tigersres
 open tigertrans
+open tigertopsort
 
 type expty = {exp: unit, ty: Tipo}
 
@@ -46,6 +47,15 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
 (*fun tipoReal (TTipo (s, ref (SOME (t)))) = tipoReal t
   | tipoReal t = t*)
 
+fun printTE location tenv =
+    let
+        val _ = print ("["^location^"] type environment >>>\n")
+        val _ = List.app (fn (name) => print ("\t"^name^"\n")) (tabClaves tenv)
+        val _ = print ("["^location^"] type environment <<<\n")
+    in
+        ()
+    end
+
 fun tiposIguales (TRecord _) TNil = true
   | tiposIguales TNil (TRecord _) = true 
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
@@ -84,7 +94,7 @@ fun transExp(venv, tenv) =
 			in
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then 
 					{exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=EqOp,right=expr} else binOpIntRelExp {left=expl,oper=EqOp,right=expr}, ty=TInt}
-					else error("Tipos no comparables", nl)
+					else error("Tipos no comparables "^tigerpp.prettyPrintTipo(tyl)^" "^tigerpp.prettyPrintTipo(tyr), nl)
 			end
 		| trexp(OpExp({left, oper=NeqOp, right}, nl)) = 
 			let
@@ -93,7 +103,8 @@ fun transExp(venv, tenv) =
 			in
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then 
 					{exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=NeqOp,right=expr} else binOpIntRelExp {left=expl,oper=NeqOp,right=expr}, ty=TInt}
-					else error("Tipos no comparables", nl)
+					else error("Tipos no comparables "^tigerpp.prettyPrintTipo(tyl)^" "^tigerpp.prettyPrintTipo(tyr), nl)
+					(*else error("Tipos no comparables", nl)*)
 			end
 		| trexp(OpExp({left, oper, right}, nl)) = 
 			let
@@ -125,7 +136,6 @@ fun transExp(venv, tenv) =
 			let
 				(* Traducir cada expresión de fields *)
 				val tfields = map (fn (sy,ex) => (sy, trexp ex)) fields
-
 				(* Buscar el tipo *)
 				val (tyr, cs) = case tabBusca(typ, tenv) of
 					SOME t => (case t of
@@ -183,9 +193,12 @@ fun transExp(venv, tenv) =
 		| trexp(WhileExp({test, body}, nl)) =
 			let
 				val ttest = trexp test
+                val _ = preWhileForExp()
 				val tbody = trexp body
+                val expwhile = whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()} 
+                val _ = postWhileForExp()
 			in
-				if tiposIguales (#ty ttest)   TInt andalso #ty tbody = TUnit then {exp=whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()}, ty=TUnit}
+				if tiposIguales (#ty ttest)   TInt andalso #ty tbody = TUnit then {exp=expwhile, ty=TUnit}
 				else if not (tiposIguales (#ty ttest) TInt) then error("Error de tipo en la condición", nl)
 				else error("El cuerpo de un while no puede devolver un valor", nl)
 			end
@@ -198,21 +211,24 @@ fun transExp(venv, tenv) =
                 val access = allocLocal (topLevel()) (!escape)
                 val level = getActualLev()
                 val varEntry = {level=level, access=access}
+                val _ = preWhileForExp()
 		        val venv' = tabInserta(var, (VIntro varEntry), venv)
                 val var = simpleVar(access, level)
 		        val {exp=expbody, ty=tybody} = transExp(venv', tenv) body
 		        val _ = if tybody = TUnit then () else error("trexp::ForExp - El cuerpo de for no es TUnit" ,nl)
+                val expfor = forExp{lo=explo, hi=exphi, var=var, body=expbody}
+                val _ = postWhileForExp()
 	        in
-                {exp=forExp{lo=explo, hi=exphi, var=var, body=expbody}, ty=TUnit}
+                {exp=expfor, ty=TUnit}
             end
 		| trexp(LetExp({decs, body}, _)) =
 			let
 				fun aux (d, (v, t, exps1)) =
-				let
-					val (v', t', exps2) = trdec (v, t) d
-				in
-					(v', t', exps1@exps2)
-				end
+				    let
+					    val (v', t', exps2) = trdec (v, t) d
+				    in
+					    (v', t', exps1@exps2)
+				    end
 				val (venv', tenv', expdecs) = List.foldl aux (venv, tenv, []) decs
 				val {exp=expbody,ty=tybody}=transExp (venv', tenv') body
 			in 
@@ -236,13 +252,13 @@ fun transExp(venv, tenv) =
             end
 		and trvar(SimpleVar s, nl) =
             let
-                val (access, level) = 
+                val (access, level, typ) = 
                     case tabBusca(s, venv) of
-                        SOME (VIntro{access, level}) => (access, level)
-                        | SOME (Var{ty, access, level}) => (access, level)                        
+                        SOME (VIntro{access, level}) => (access, level, TInt)
+                        | SOME (Var{ty, access, level}) => (access, level, ty)                        
                         | _ => error("Variable "^s^" no definida en el scope", nl)
             in
-			    {exp=simpleVar(access, level), ty=TUnit} 
+			    {exp=simpleVar(access, level), ty=typ} 
             end
 		  | trvar(FieldVar(v, s), nl) =
                     let
@@ -285,11 +301,11 @@ fun transExp(venv, tenv) =
                 val {exp=expinit, ty=tyinit} = transExp (venv, tenv) init
                 val tyv = case tabBusca(s, tenv) of
                               SOME t' => t'
-                              | NONE => error("trdec: Tipo indefinido "^s , pos)
+                              | NONE => error("trdec: Tipo indefinido "^s^" en variable "^name , pos)
                 val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^tigerpp.prettyPrintTipo(tyv), pos)
                 val level = getActualLev()
                 val acc = allocLocal (topLevel()) (!escape)
-                val venv' = tabInserta(name, (Var{ty=tyinit, access=acc, level=level}), venv)
+                val venv' = tabRInserta(name, (Var{ty=tyv, access=acc, level=level}), venv)
                 val ci = varDec acc
             in
                 print "Pase por trdec::VarDec2!!\n";
@@ -383,16 +399,16 @@ fun transExp(venv, tenv) =
 			              ({name="",ty=NameTy ""},0) (* Invento un tipo con nombre "" que no va a ser igual a ninguno de los que se definan. *)
 			              sortedNames
               val ltsinpos = List.map (fn (x,pos) => x) ts
-              (* val tenv' = tigertopsort.fijaTipos ltsinpos tenv *)
+              val tenv' = tigertopsort.fijaTipos ltsinpos tenv
           in
               print "Pase por trdec::TypeDec!!\n";
-              (venv, tenv, [])
+              (venv, tenv', [])
           end
 	in trexp end
 fun transProg ex =
 	let	val main =
 				LetExp({decs=[FunctionDec[({name="_tigermain", params=[],
-								result=NONE, body=ex}, 0)]],
+								result=SOME "int", body=ex}, 0)]],
 						body=UnitExp 0}, 0)
 		val _ = transExp(tab_vars, tab_tipos) main
 	in	print "bien!\n" end
