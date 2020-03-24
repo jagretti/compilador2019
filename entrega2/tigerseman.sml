@@ -165,10 +165,13 @@ fun transExp(venv, tenv) =
                 {exp=recordExp lf, ty=tyr}
             end
         | trexp(SeqExp(s, nl)) =
-            let     val lexti = map trexp s
-                val exprs = map (fn{exp, ty} => exp) lexti
-                val {exp, ty=tipo} = hd(rev lexti)
-            in  { exp=seqExp (exprs), ty=tipo } end
+          let
+              val lexti = map trexp s
+              val exprs = map (fn{exp, ty} => exp) lexti
+              val {exp, ty=tipo} = hd(rev lexti)
+          in
+              {exp=seqExp (exprs), ty=tipo}
+          end
         (*| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
             {exp=SCAF, ty=TUnit} (*COMPLETAR*)*)
         | trexp(AssignExp({var, exp}, nl)) =
