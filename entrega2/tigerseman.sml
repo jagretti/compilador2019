@@ -100,10 +100,13 @@ fun transExp(venv, tenv) =
             let
                 val {exp=expl, ty=tyl} = trexp left
                 val {exp=expr, ty=tyr} = trexp right
+                val opExp = if tiposIguales tyl TString
+                            then binOpStrExp {left=expl,oper=EqOp,right=expr}
+                            else binOpIntRelExp {left=expl,oper=EqOp,right=expr}
             in
-                if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then
-                    {exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=EqOp,right=expr} else binOpIntRelExp {left=expl,oper=EqOp,right=expr}, ty=TInt}
-                    else error("Tipos no comparables "^pt(tyl)^" "^pt(tyr), nl)
+                if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit
+                then {exp=opExp, ty=TInt}
+                else error("Tipos no comparables "^pt(tyl)^" "^pt(tyr), nl)
             end
         | trexp(OpExp({left, oper=NeqOp, right}, nl)) =
             let
