@@ -56,6 +56,12 @@ fun printTE location tenv =
         ()
     end
 
+(* PrettyTipo convert a tigertips.Tipo object to string *)
+fun pt ty = tigerpp.prettyPrintTipo ty
+
+(* PrintPrettyTipo print the PrettyTipo *)
+fun ppt ty = print ((pt ty)^"\n")
+
 fun tiposIguales (TRecord _) TNil = true
   | tiposIguales TNil (TRecord _) = true 
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
@@ -94,7 +100,7 @@ fun transExp(venv, tenv) =
 			in
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then 
 					{exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=EqOp,right=expr} else binOpIntRelExp {left=expl,oper=EqOp,right=expr}, ty=TInt}
-					else error("Tipos no comparables "^tigerpp.prettyPrintTipo(tyl)^" "^tigerpp.prettyPrintTipo(tyr), nl)
+					else error("Tipos no comparables "^pt(tyl)^" "^pt(tyr), nl)
 			end
 		| trexp(OpExp({left, oper=NeqOp, right}, nl)) = 
 			let
@@ -103,7 +109,7 @@ fun transExp(venv, tenv) =
 			in
 				if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then 
 					{exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=NeqOp,right=expr} else binOpIntRelExp {left=expl,oper=NeqOp,right=expr}, ty=TInt}
-					else error("Tipos no comparables "^tigerpp.prettyPrintTipo(tyl)^" "^tigerpp.prettyPrintTipo(tyr), nl)
+					else error("Tipos no comparables "^pt(tyl)^" "^pt(tyr), nl)
 					(*else error("Tipos no comparables", nl)*)
 			end
 		| trexp(OpExp({left, oper, right}, nl)) = 
@@ -245,7 +251,7 @@ fun transExp(venv, tenv) =
                                             TArray (ta',ur') => (ta',ur')
                                             | _ => error("trexp::ArrayExp - El tipo "^typ^" no es un arreglo", nl))
                                 | _ => error("trexp::ArrayExp - Tipo "^typ^" no definido", nl))
-                val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^tigerpp.prettyPrintTipo(inittype)^"no coincide con el tipo declarado "^typ, nl)
+                val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^pt(inittype)^"no coincide con el tipo declarado "^typ, nl)
             in
                 print "Pase por ArrayExp!!\n";
                 {exp=arrayExp{size=sizeexp, init=initexp}, ty=TArray (ta, ur)}
@@ -268,7 +274,7 @@ fun transExp(venv, tenv) =
                                         (case List.filter (fn x => #1x = s) ls of
                                              [] => error("trvar: El nombre de la variable no existe en este record "^s, nl)
                                            | (x::_) => (#2x, #3x))
-                                      | _ => (tigerpp.prettyPrintTipo(vartype) ; error("trvar: No se puede indexar por que no es Record", nl))
+                                      | _ => (pt(vartype) ; error("trvar: No se puede indexar por que no es Record", nl))
                     in
                         {exp=fieldVar(varexp, vindex), ty=(!vtype)}
                     end
@@ -276,7 +282,7 @@ fun transExp(venv, tenv) =
                     let
                         val {exp=expexp, ty=exptype} = trexp(e)
                         val {exp=varexp, ty=vartype} = trvar(v, nl)
-                        val _ = if tiposIguales exptype (TInt) then () else error("trvar::SubscriptVar El indice debe ser entero pero es "^tigerpp.prettyPrintTipo(exptype), nl)
+                        val _ = if tiposIguales exptype (TInt) then () else error("trvar::SubscriptVar El indice debe ser entero pero es "^pt(exptype), nl)
                     in
                         case vartype of
                             TArray (ty, _) => {exp=subscriptVar(expexp, varexp), ty=(!ty)}
@@ -302,7 +308,7 @@ fun transExp(venv, tenv) =
                 val tyv = case tabBusca(s, tenv) of
                               SOME t' => t'
                               | NONE => error("trdec: Tipo indefinido "^s^" en variable "^name , pos)
-                val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^tigerpp.prettyPrintTipo(tyv), pos)
+                val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^pt(tyv), pos)
                 val level = getActualLev()
                 val acc = allocLocal (topLevel()) (!escape)
                 val venv' = tabRInserta(name, (Var{ty=tyv, access=acc, level=level}), venv)
@@ -373,9 +379,11 @@ fun transExp(venv, tenv) =
                           | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
                         val venv' = addParam tipos params venv
                         val {ty=tyBody, exp=expBody} = transExp (venv', tenv) body
-                        (* val _ = printTipo tyBody
-                        val _ = printTipo tyResult *)
-                        val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^tigerpp.prettyPrintTipo(tyResult)^" y el tipo de su cuerpo "^tigerpp.prettyPrintTipo(tyBody)^" no coinciden",nl)
+                        (*
+                        val _ = ppt tyBody
+                        val _ = ppt tyResult
+                        *)
+                        val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^pt(tyResult)^" y el tipo de su cuerpo "^pt(tyBody)^" no coinciden",nl)
                         val isProc = (tyResult = TUnit)
                         val ci = functionDec(expBody, funcLevel, isProc)
 
