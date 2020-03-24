@@ -47,7 +47,8 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
 (*fun tipoReal (TTipo (s, ref (SOME (t)))) = tipoReal t
   | tipoReal t = t*)
 
-fun printTE location tenv =
+(* Print the keys of of the given table/map *)
+fun printTable location tenv =
     let
         val _ = print ("["^location^"] type environment >>>\n")
         val _ = List.app (fn (name) => print ("\t"^name^"\n")) (tabClaves tenv)
