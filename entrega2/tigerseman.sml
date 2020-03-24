@@ -86,7 +86,7 @@ fun transExp(venv, tenv) =
                         | _ => error("trexp::CallExp - Funcion "^func^" no definida", nl)
                 val argexplist = List.map trexp args
                 val argexplist_onlyexp = List.map (#exp) argexplist
-                val isproc = if TUnit = resultstype then true else false
+                val isproc = TUnit = resultstype
                 val argexplisttypes = List.map (#ty) argexplist
                 val _ = if List.length argtypes = List.length argexplisttypes then () 
                             else error("trexp::CallExp - Funcion "^func^" invocada con una cantidad incorrecta de argumentos!", nl)
