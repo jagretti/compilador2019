@@ -63,6 +63,8 @@ fun pt ty = tigerpp.prettyPrintTipo ty
 (* PrintPrettyTipo print the PrettyTipo *)
 fun ppt ty = print ((pt ty)^"\n")
 
+
+(* Compare the nature of the Tipos *)
 fun tiposIguales (TRecord _) TNil = true
   | tiposIguales TNil (TRecord _) = true 
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
