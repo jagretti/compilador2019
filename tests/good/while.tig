@@ -1,0 +1,7 @@
+let
+    var a := 1
+    var b := while 1 = 2
+                   do a := a + 1
+in 
+  0
+end
