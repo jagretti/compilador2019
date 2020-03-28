@@ -210,11 +210,15 @@ struct
 		| notFun _ = raise Fail("No debería pasar (notFun)")
 
 		fun getstrFun(args) = 
-		let
-			val str = TextIO.inputLine TextIO.stdIn
-		in
-			storeString str
-		end
+			let
+				val str = TextIO.inputLine TextIO.stdIn
+				val str2 = case str of
+							   SOME s => s
+							  | NONE => raise Fail("No debería pasar (getstrFun)")
+
+			in
+				storeString str2
+			end
 
 		val tabLib: (tigertemp.label, int list -> int) Tabla =
 			tabInserList(tabNueva(),

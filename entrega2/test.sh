@@ -12,7 +12,7 @@ eval_test ()
     OK_COUNT=0
     for d in $1/* ; do
 	FILE_COUNT=$((FILE_COUNT+1))
-        if ./tiger $d | grep -q "bien!" ; then
+        if ./tiger -inter $d | grep -q "bien!" ; then
 	    OK_COUNT=$((OK_COUNT+1))
             echo "$(tput setaf 2)[ok] $(tput sgr 0) $d"
         else
