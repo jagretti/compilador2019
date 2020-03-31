@@ -350,9 +350,11 @@ fun transExp(venv, tenv) =
                                             | SOME t => case tabBusca(t, tenv) of
                                                             NONE => error ("trdec: (FunctionDec) (aux): el tipo "^t^" no existe!", nl)
                                                             | SOME t' => t'
+                          (* level and Func MUST! have the same LABEL otherwise function calls won't match to the right function*)
+                          val lab = if name = "_tigermain" then name else name^"_"^tigertemp.newlabel()^"_"^(Int.toString nl)
                           (* extern=false ya que las funciones externas se definen en runtime *)
-                          val lvl = newLevel {parent=topLevel(), name=name, formals=map (! o #escape) params}
-                          val entry = Func {level=lvl, label=tigertemp.newlabel(), formals=tyToTipo params, result=resultType, extern=false}
+                          val lvl = newLevel {parent=topLevel(), name=lab, formals=map (! o #escape) params}
+                          val entry = Func {level=lvl, label=lab, formals=tyToTipo params, result=resultType, extern=false}
                           val venv'' = tabRInserta(name, entry, venv')
                       in
                         aux venv'' fss
