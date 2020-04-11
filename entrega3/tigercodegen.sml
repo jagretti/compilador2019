@@ -176,37 +176,34 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                            lab = lb})
 
         and munchExp (CONST i) =
-            result (fn r => emit (OPER {assem = "movl "^Int.toString(i)^", %d0\n",src=[],dst=[r],jump=NONE}))
+            (* movl $i, d0  =>  d0 = $i *)
+            result (fn r => emit (OPER {assem = "movl $"^Int.toString(i)^", d0",src=[],dst=[r],jump=NONE}))
          |  munchExp (MEM (BINOP (PLUS, e1, CONST i))) =
+            (* Libro *)
+            (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)
             result (fn r => emit (A.OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
                                                    src = [munchExp e1],
                                                    dst = [r],
                                                    jump = NONE}))
          | munchExp (MEM (BINOP (PLUS, CONST i, e1))) =
+           (* Libro *)
+           (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)
            result (fn r => emit (A.OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
                                                   src = [munchExp e1],
                                                   dst = [r],
                                                   jump = NONE}))
-         | munchExp (MEM (CONST i)) =
-           result (fn r => emit (OPER {assem = "movl "^ Int.toString i ^", `d0",
-                                       src = [],
-                                       dst = [r],
-                                       jump = NONE}))
          | munchExp (MEM e) =
+           (* Libro *)
+           (* movl (s0), d0  =>  d0 = mem[s0] *)
            result (fn r => emit (A.OPER {assem = "movl (`s0), `d0",
                                                   src = [munchExp e],
                                                   dst = [r],
                                                   jump = NONE}))
-         | munchExp (BINOP (PLUS, e1, CONST i)) =
-           result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
-                                        src = [],
-                                        dst = [r],
-                                        jump = NONE});
-                            emit (A.OPER {assem = "addl `s0, `d0",
-                                                   src = [munchExp e1, r],
-                                                   dst = [r],
-                                                   jump = NONE})))
+         | munchExp (BINOP (PLUS, e1, CONST i)) = munchExp (BINOP (PLUS, CONST i, e1))
          | munchExp (BINOP (PLUS, CONST i, e1)) =
+           (* Libro *)
+           (* movl $i, d0  =>  d0 = $i *)
+           (* addl s0, d0  =>  %eax = s0 + d0 *)
            result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
                                         src = [],
                                         dst = [r],
@@ -251,11 +248,12 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                  | _ => raise Fail "Shouldn't happen (munchExp)"
            end
          | munchExp (NAME s) =
+           (* movl $s, d0  =>  d0 = $s *)
            result (fn r => emit (OPER {assem = "movl $" ^ s ^", `d0",
                                        src = [],
                                        dst = [r],
                                        jump = NONE}))
-         | muchExp (TEMP t) = t
+         | munchExp (TEMP t) = t
          | _ => raise Fail "Shouldn't happen (munchExp (Call))"
 
 
