@@ -128,19 +128,21 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                           dst = [],
                           jump = SOME ls})
           | munchStm (CJUMP (oper, CONST a, CONST b, l1, l2)) =
-            let fun comp oper x y =
+            let
+                fun comp oper x y =
                     case oper of
-                        EQ => x = y
-                      | NE => x <> y
-                      | LT => x < y
-                      | GT => x > y
-                      | LE => x <= y
-                      | GE => x >= y
+                        EQ  => x = y
+                      | NE  => x <> y
+                      | LT  => x < y
+                      | GT  => x > y
+                      | LE  => x <= y
+                      | GE  => x >= y
                       | ULT => x < y
                       | ULE => x <= y
                       | UGT => x > y
                       | UGE => x >= y
-            in emit (A.OPER {assem = "jmp `j0",
+            in
+                emit (A.OPER {assem = "jmp `j0",
                              src = [],
                              dst = [],
                              jump = SOME [if (comp oper a b)
@@ -160,16 +162,16 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                       jump = NONE})
             in
                 case oper of
-                    EQ => emitjmps "je"
-                   |NE => emitjmps "jne"
-                   |LT => emitjmps "jl"
-                   |GT => emitjmps "jg"
-                   |LE => emitjmps "jle"
-                   |GE => emitjmps "jge"
-                   |ULT => emitjmps "jb"
-                   |ULE => emitjmps "jbe"
-                   |UGT => emitjmps "ja"
-                   |UGE => emitjmps "jae"
+                    EQ  => emitjmps "je"
+                  | NE  => emitjmps "jne"
+                  | LT  => emitjmps "jl"
+                  | GT  => emitjmps "jg"
+                  | LE  => emitjmps "jle"
+                  | GE  => emitjmps "jge"
+                  | ULT => emitjmps "jb"
+                  | ULE => emitjmps "jbe"
+                  | UGT => emitjmps "ja"
+                  | UGE => emitjmps "jae"
             end
           | munchStm (LABEL lb) =
             emit (A.LABEL {assem = lb^":",
@@ -212,40 +214,44 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                                    src = [munchExp e1, r],
                                                    dst = [r],
                                                    jump = NONE})))
-         | munchExp  (BINOP (oper, e1, e2)) =
-           let fun emitOp instr =  result (fn r => (emit (A.MOVE {assem = "movl `s0, `d0",
-                                                                           src = munchExp e1,
-                                                                           dst = r});
-                                                    emit (A.OPER {assem = instr^" `s0, `d0",
-                                                                           src = [munchExp e2, r],
-                                                                           dst = [r],
-                                                                           jump = NONE})))
-               fun emitDiv () = result (fn r => (emit (A.OPER {assem = "xorl `d0, `d0",
-                                                                        src = [],
-                                                                        dst = [ov],
-                                                                        jump = NONE});
-                                                 emit (A.MOVE {assem = "movl `s0, `d0",
-                                                                        src = munchExp e1,
-                                                                        dst = rv});
-                                                 emit (A.MOVE {assem = "movl `s0, `d0",
-                                                                        src = munchExp e2,
-                                                                        dst = r});
-                                                 emit (A.OPER {assem = "idivl `s0",
-                                                                        src = [r, rv, ov],
-                                                                        dst = [ov, rv],
-                                                                        jump = NONE});
-                                                 emit (A.MOVE {assem = "movl `s0, `d0",
-                                                                        src = rv,
-                                                                        dst = r})))
-           in case oper of
-                  PLUS => emitOp "addl"
-                 |MINUS => emitOp "subl"
-                 |MUL => emitOp "imull"
-                 |DIV => emitDiv()
-                 |AND => emitOp "andl"
-                 |OR => emitOp "orl"
-                 |XOR => emitOp "xorl"
-                 | _ => raise Fail "Shouldn't happen (munchExp)"
+         | munchExp (BINOP (oper, e1, e2)) =
+           let
+               fun emitOp instr =
+                   result (fn r => (emit (A.MOVE {assem = "movl `s0, `d0",
+                                                  src = munchExp e1,
+                                                  dst = r});
+                                    emit (A.OPER {assem = instr^" `s0, `d0",
+                                                  src = [munchExp e2, r],
+                                                  dst = [r],
+                                                  jump = NONE})))
+               fun emitDiv () =
+                   result (fn r => (emit (A.OPER {assem = "xorl `d0, `d0",
+                                                  src = [],
+                                                  dst = [ov],
+                                                  jump = NONE});
+                                    emit (A.MOVE {assem = "movl `s0, `d0",
+                                                  src = munchExp e1,
+                                                  dst = rv});
+                                    emit (A.MOVE {assem = "movl `s0, `d0",
+                                                  src = munchExp e2,
+                                                  dst = r});
+                                    emit (A.OPER {assem = "idivl `s0",
+                                                  src = [r, rv, ov],
+                                                  dst = [ov, rv],
+                                                  jump = NONE});
+                                    emit (A.MOVE {assem = "movl `s0, `d0",
+                                                  src = rv,
+                                                  dst = r})))
+           in
+               case oper of
+                   PLUS  => emitOp "addl"
+                 | MINUS => emitOp "subl"
+                 | MUL   => emitOp "imull"
+                 | DIV   => emitDiv()
+                 | AND   => emitOp "andl"
+                 | OR    => emitOp "orl"
+                 | XOR   => emitOp "xorl"
+                 | _     => raise Fail "Shouldn't happen (munchExp)"
            end
          | munchExp (NAME s) =
            (* movl $s, d0  =>  d0 = $s *)
@@ -258,7 +264,8 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
 
 
         and munchArgs params =
-            let fun munchArgsSt (CONST i) =
+            let
+                fun munchArgsSt (CONST i) =
                     emit (OPER {assem = "pushl $" ^ Int.toString i,
                                 src = [],
                                 dst = [],
