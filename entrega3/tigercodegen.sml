@@ -217,6 +217,8 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
          | munchExp (BINOP (oper, e1, e2)) =
            let
                fun emitOp instr =
+                   (* molv  s0, d0  =>  r = e1 *)
+                   (* instr s0, d0  =>  r = instr(e2, r)  *)
                    result (fn r => (emit (A.MOVE {assem = "movl `s0, `d0",
                                                   src = munchExp e1,
                                                   dst = r});
@@ -225,6 +227,11 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                                   dst = [r],
                                                   jump = NONE})))
                fun emitDiv () =
+                   (* xorl  d0, d0  =>  ov = 0x0 *)
+                   (* movl  s0, d0  =>  rv = e1  *)
+                   (* movl  s0, d0  =>  r  = e2  *)
+                   (* idivl s0 =>   =>  idivl r  *)
+                   (* movl  s0, d0  =>  r  = rv  *)
                    result (fn r => (emit (A.OPER {assem = "xorl `d0, `d0",
                                                   src = [],
                                                   dst = [ov],
@@ -247,10 +254,10 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                    PLUS  => emitOp "addl"
                  | MINUS => emitOp "subl"
                  | MUL   => emitOp "imull"
-                 | DIV   => emitDiv()
                  | AND   => emitOp "andl"
                  | OR    => emitOp "orl"
                  | XOR   => emitOp "xorl"
+                 | DIV   => emitDiv()
                  | _     => raise Fail "Shouldn't happen (munchExp)"
            end
          | munchExp (NAME s) =
@@ -260,7 +267,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                        dst = [r],
                                        jump = NONE}))
          | munchExp (TEMP t) = t
-         | _ => raise Fail "Shouldn't happen (munchExp (Call))"
+         | _ => raise Fail "Shouldn't happen (munchExp (_))"
 
 
         and munchArgs params =
