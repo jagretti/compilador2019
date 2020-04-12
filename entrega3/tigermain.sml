@@ -6,6 +6,7 @@ open tigertrans
 open tigerframe
 open tigercanon
 open tigerinterp
+open tigercodegen
 open BasicIO Nonstdio
 
 fun lexstream(is: instream) =
@@ -54,6 +55,13 @@ fun main(args) =
         (* call interpreter *)
         val _ = if interp then inter debug fracss stringList else ()
 
+        (* select instructions *)
+        val instructions = List.concat(map (fn (s, f) => List.concat((map (fn (ss) => codegen f ss ) s))) fracss)
+
+        fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
+          | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
+          | printInstr (tigerassem.MOVE move) = print (((#assem) move)^"\n")
+        val _ = map (fn (i) => printInstr i) instructions
     in
         print "yes!!\n"
     end     handle Fail s => print("Fail: "^s^"\n")

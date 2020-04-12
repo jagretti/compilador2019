@@ -1,4 +1,7 @@
-structure Assem = struct
+structure tigerassem =
+struct
+
+  structure Temp = tigertemp
 
   type reg = string
   type temp = Temp.temp
@@ -16,7 +19,7 @@ structure Assem = struct
   fun format saytemp =
       let
       fun speak(assem,dst,src,jump) =
-          let val saylab = Symbol.name
+          let val saylab = tigertab.name
               fun f(#"`":: #"s":: i::rest) =
                   (explode(saytemp(List.nth(src,ord i - ord #"0"))) @ f rest)
                 | f( #"`":: #"d":: i:: rest) =
@@ -24,7 +27,7 @@ structure Assem = struct
                 | f( #"`":: #"j":: i:: rest) =
                   (explode(saylab(List.nth(jump,ord i - ord #"0"))) @ f rest)
                 | f( #"`":: #"`":: rest) = #"`" :: f rest
-                | f( #"`":: _ :: rest) = ErrorMsg.impossible "bad Assem format"
+                | f( #"`":: _ :: rest) = raise Fail "bad Assem format"
                 | f(c :: rest) = (c :: f rest)
                 | f nil = nil
           in implode(f(explode assem))

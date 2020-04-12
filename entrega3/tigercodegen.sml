@@ -17,7 +17,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
         fun result (gen) = let val t = tigertemp.newtemp() in gen t; t end
         (*COMLETAR*)
 
-        fun munchStm (SEQ(a, b)) = (munchStm a, munchStm b)
+        fun munchStm (SEQ(a, b)) = (munchStm a; munchStm b)
           | munchStm (MOVE(MEM(BINOP(PLUS, e1, CONST i)), e2)) =
             (* Libro *)
             (* movl s0, i(s1)  =>  mem[s1 + i] = s0 *)
@@ -28,8 +28,8 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
           | munchStm (MOVE(TEMP t1, TEMP t2)) =
             (* movl s0, d0  =>  d0 = s0 *)
             emit(A.MOVE{assem = "movl `s0, `d0",
-                        src = [t2],
-                        dst = [t1]})
+                        src = t2,
+                        dst = t1})
           | munchStm (MOVE(TEMP t, CONST 0)) =
             (* xorl d0, d0  =>  d0 = 0x0 *)
             emit(A.OPER {assem = "xorl `d0, `d0",
@@ -102,8 +102,8 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
             (* Libro *)
             (* movl s0, d0  =>  d0 = s0  *)
             emit(A.MOVE {assem = "movl `s0, `d0",
-                         src = [munchExp e],
-                         dst = [t]})
+                         src = munchExp e,
+                         dst = t})
           | munchStm (MOVE (e1, e2)) = raise Fail "Shouldn't happen (munchStm): MISSING CASES"
           | munchStm (EXP (CALL (NAME f, args))) =
             (munchArgs (List.rev args);
@@ -115,8 +115,8 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
           | munchStm (EXP e) =
             (* movl s0, d0  =>  d0 = s0  *)
             emit (A.MOVE {assem = "movl `s0 `d0",
-                          src = [munchExp e],
-                          dst = [tigertemp.newtemp()]})
+                          src = munchExp e,
+                          dst = tigertemp.newtemp()})
           | munchStm (JUMP (NAME l, ls)) =
             emit (A.OPER {assem = "jmp `j0",
                           src = [],
@@ -143,10 +143,10 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                       | UGE => x >= y
             in
                 emit (A.OPER {assem = "jmp `j0",
-                             src = [],
-                             dst = [],
-                             jump = SOME [if (comp oper a b)
-                                          then l1 else l2]})
+                              src = [],
+                              dst = [],
+                              jump = SOME [if (comp oper a b)
+                                           then l1 else l2]})
             end
           | munchStm (CJUMP (oper, e1, e2, l1, l2)) =
             let
@@ -184,23 +184,23 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
             (* Libro *)
             (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)
             result (fn r => emit (A.OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
-                                                   src = [munchExp e1],
-                                                   dst = [r],
-                                                   jump = NONE}))
+                                          src = [munchExp e1],
+                                          dst = [r],
+                                          jump = NONE}))
          | munchExp (MEM (BINOP (PLUS, CONST i, e1))) =
            (* Libro *)
            (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)
            result (fn r => emit (A.OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
-                                                  src = [munchExp e1],
-                                                  dst = [r],
-                                                  jump = NONE}))
+                                         src = [munchExp e1],
+                                         dst = [r],
+                                         jump = NONE}))
          | munchExp (MEM e) =
            (* Libro *)
            (* movl (s0), d0  =>  d0 = mem[s0] *)
            result (fn r => emit (A.OPER {assem = "movl (`s0), `d0",
-                                                  src = [munchExp e],
-                                                  dst = [r],
-                                                  jump = NONE}))
+                                         src = [munchExp e],
+                                         dst = [r],
+                                         jump = NONE}))
          | munchExp (BINOP (PLUS, e1, CONST i)) = munchExp (BINOP (PLUS, CONST i, e1))
          | munchExp (BINOP (PLUS, CONST i, e1)) =
            (* Libro *)
@@ -211,9 +211,9 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                         dst = [r],
                                         jump = NONE});
                             emit (A.OPER {assem = "addl `s0, `d0",
-                                                   src = [munchExp e1, r],
-                                                   dst = [r],
-                                                   jump = NONE})))
+                                          src = [munchExp e1, r],
+                                          dst = [r],
+                                          jump = NONE})))
          | munchExp (BINOP (oper, e1, e2)) =
            let
                fun emitOp instr =
@@ -267,7 +267,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                        dst = [r],
                                        jump = NONE}))
          | munchExp (TEMP t) = t
-         | _ => raise Fail "Shouldn't happen (munchExp (_))"
+         | munchExp _ = raise Fail "Shouldn't happen (munchExp (_))"
 
 
         and munchArgs params =
@@ -288,7 +288,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                 dst = [],
                                 jump = NONE})
                   | munchArgsSt  (MEM e) =
-                    emit (OPER {assem = "pushl (`s0)"
+                    emit (OPER {assem = "pushl (`s0)",
                                 src = [munchExp e],
                                 dst = [],
                                 jump = NONE})
@@ -298,12 +298,15 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                 dst = [],
                                 jump = NONE})
             in
-                List.map munchArgsSt t
+                List.map munchArgsSt params
             end
     in
-        munchArgsSt params
+        munchStm stm;
+        rev(!ilist)
     end
-in
-    munchStm stm;
-    rev(!ilist)
 end
+
+
+
+
+(*some comment*)
