@@ -230,7 +230,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                    (* xorl  d0, d0  =>  ov = 0x0 *)
                    (* movl  s0, d0  =>  rv = e1  *)
                    (* movl  s0, d0  =>  r  = e2  *)
-                   (* idivl s0 =>   =>  idivl r  *)
+                   (* idivl s0      =>  idivl r  *)
                    (* movl  s0, d0  =>  r  = rv  *)
                    result (fn r => (emit (A.OPER {assem = "xorl `d0, `d0",
                                                   src = [],
