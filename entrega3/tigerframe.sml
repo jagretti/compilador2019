@@ -71,7 +71,14 @@ val allocArg = allocLocal
 fun string(l, s) = l^tigertemp.makeString(s)^"\n"
 fun exp(InFrame k) e = MEM(BINOP(PLUS, TEMP(fp), CONST k))
 | exp(InReg l) e = TEMP l
-fun externalCall(s, l) = CALL(NAME s, l)
+(*fun externalCall(s, l) = CALL(NAME s, l)*)
+fun externalCall(s, l) =
+	let
+		val raux = tigertemp.newtemp()
+	in
+		(* save the %eax return by CALL in a new TEMP *)
+		ESEQ(SEQ(EXP(CALL(NAME s, l)),MOVE(TEMP raux,TEMP rv)),TEMP raux)
+	end
 
 fun procEntryExit1 (frame,body) = body
 end
