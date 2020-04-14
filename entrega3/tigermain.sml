@@ -56,7 +56,15 @@ fun main(args) =
         val _ = if interp then inter debug fracss stringList else ()
 
         (* select instructions *)
-        val instructions = List.concat(map (fn (s, f) => List.concat((map (fn (ss) => codegen f ss ) s))) fracss)
+        val instructions = List.concat(map (fn (s, f) =>
+                                               List.concat((map (fn (ss) =>
+                                                                              let
+                                                                                  val ins = codegen f ss
+                                                                                  val ins' = tigersimpleregalloc.simpleregalloc f ins
+                                                                              in
+                                                                                  ins'
+                                                                              end) s))) fracss)
+
 
         fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
           | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")

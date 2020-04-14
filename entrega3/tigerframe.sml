@@ -32,10 +32,15 @@ datatype frag = PROC of {body: tigertree.stm, frame: frame}
 	| STRING of tigertemp.label * string
 
 
-val rv = "RV"				(* return value  *)
-val ov = "OV"				(* overflow value (edx en el 386) *)
-val fp = "FP"				(* frame pointer *)
-val sp = "SP"				(* stack pointer *)
+val rv = "%eax"				(* return value  *)
+val ov = "%edx"				(* overflow value (edx en el 386) *)
+val fp = "%ebp"				(* frame pointer *)
+val sp = "%esp"				(* stack pointer *)
+val si = "%esi"
+val di = "%edi"
+val ip = "%eip"
+val bx = "%ebx"
+val cx = "%ecx"
 
 val fpPrev = 0				(* offset (bytes) *)
 val fpPrevLev = 8			(* offset (bytes) *)

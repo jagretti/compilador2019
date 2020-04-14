@@ -14,13 +14,13 @@ struct
 			let
 				val desp = if mempos<0 then " - " ^ Int.toString(~mempos) else if mempos>0 then " + " ^ Int.toString(mempos) else ""
 			in
-				OPER {assem="mov `s0 M(a" ^ desp ^ ")", src=[temp], dst=[], jump=NONE}
+				OPER {assem="movl `s1, "^desp^"(`s0)", src=[frame.fp, temp], dst=[], jump=NONE}
 			end
 		fun movaTemp(mempos, temp) =
 			let
 				val desp = if mempos<0 then " - " ^ Int.toString(~mempos) else if mempos>0 then " + " ^ Int.toString(mempos) else ""
 			in
-				OPER {assem="mov M(a" ^ desp ^ ") `d0", src=[], dst=[temp], jump=NONE}
+				OPER {assem="movl "^desp^"(`s0), `d0", src=[frame.fp], dst=[temp], jump=NONE}
 			end
 		val temps =
 			let
