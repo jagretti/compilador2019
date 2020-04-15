@@ -70,6 +70,7 @@ fun main(args) =
           | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
           | printInstr (tigerassem.MOVE move) = print (((#assem) move)^"\n")
         val _ = map (fn (i) => printInstr i) instructions
+        val _ = map (fn (i) => print((tigerassem.format (fn (j) => j) i)^"\n")) instructions
     in
         print "yes!!\n"
     end     handle Fail s => print("Fail: "^s^"\n")
