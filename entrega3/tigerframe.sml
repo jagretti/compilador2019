@@ -86,4 +86,6 @@ fun externalCall(s, l) =
 	end
 
 fun procEntryExit1 (frame,body) = body
+fun procEntryExit2 (frame,body) = body
+fun procEntryExit3 (frame,body) = body
 end

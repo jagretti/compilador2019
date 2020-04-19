@@ -23,6 +23,25 @@ fun generateCode (f : tigerframe.frame, stms : tigertree.stm list) : tigerassem.
 (* apply tigersimpleregalloc.simpleregalloc *)
 fun applySimpleRegAlloc (f : tigerframe.frame, instrs : tigerassem.instr list) : tigerassem.instr list  = tigersimpleregalloc.simpleregalloc f instrs
 
+(* build assembly file *)
+fun generateAssembly (instrs : string list) : unit  =
+    let
+        (* Create  tigermain.s *)
+        val fd = TextIO.openOut "tigermain.s"
+        (* Open tigermain.s *)
+        (* Put .data *)
+        val _ = TextIO.output (fd, ".data\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .data")
+        (* Put .text *)
+        val _ = TextIO.output (fd, ".text\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
+        (* Put instructions inside .text *)
+        val str : string = List.foldr (fn(l, r) => l^"\n"^r) "" instrs
+        val _ = TextIO.output (fd, str) handle e => (TextIO.closeOut fd; raise Fail "failed to put instructions inside .text")
+        (* Close file *)
+        val _ = TextIO.closeOut fd
+    in
+        ()
+    end
+
 fun main(args) =
     let
         fun arg(l, s) = (List.exists (fn x => x=s) l, List.filter (fn x => x<>s) l)
@@ -39,34 +58,52 @@ fun main(args) =
                               handle _ => raise Fail (n^" no existe!"))
                       | [] => std_in
                       | _ => raise Fail "opcio'n dsconocida!"
+        (* 1 - Lexer *)
         val lexbuf = lexstream entrada
         val expr = prog Tok lexbuf handle _ => errParsing lexbuf
+        (* 2 - Escape *)
         val _ = findEscape(expr)
         val _ = if arbol then tigerpp.exprAst expr else ()
+
+        (* 3 - Semantic analisys - type-checking expression and generation of intermediate code *)
         val _ = transProg(expr);
-        val frags = getResult();
-        (*  *)
+        val frags : tigerframe.frag list = getResult();
+
+        (* 4 - Canonize function's body *)
+        (* split frag list  into  {body, frame} list and (label, string) list *)
         fun splitFrags [] pl sl = (rev pl, rev sl)
           | splitFrags ((PROC r)::fs) pl sl = splitFrags fs (r::pl) sl
           | splitFrags ((STRING t)::fs) pl sl = splitFrags fs pl (t::sl)
 
+        (* split  frags into functions bodys list and (label, string) list because the canonization *)
+        (* only applies to function's bodies *)
         val (procList, stringList) = splitFrags frags [] []
 
-        (* functions bodies *)
+        (* function's bodies *)
         val bs = map #body procList
-        (* canonize of type tigertree.stm list list *)
-        val stmss = map (traceSchedule o basicBlocks o linearize) bs
-        (* function frames *)
+        (* function's frames *)
         val fs = map #frame procList
+        (* canonize the function's bodies *)
+        val stmss = map (traceSchedule o basicBlocks o linearize) bs
         (* pair tigertree.stm list to its function frame. *)
-        val fracss = ListPair.zip (stmss, fs) (* tigertree.stm list * frame *)
+        val canonProcs : (tigertree.stm list * tigerframe.frame) list = ListPair.zip (stmss, fs)
 
         (* call interpreter *)
-        val _ = if interp then inter debug fracss stringList else ()
+        val _ = if interp then inter debug canonProcs stringList else ()
 
-        (* select instructions *)
-        val instr = List.concat (map (fn(stms, f) => applySimpleRegAlloc(f, generateCode(f, stms))) fracss)
-
+        (* generateCode        =>  translation to x86 instruction set *)
+        (* applySimpleRegAllec =>  select registers *)
+        fun generateInstructions(stms, frame) =
+            let
+                val bodyCode : tigerassem.instr list = generateCode(frame, stms)
+                val bodyCode' : tigerassem.instr list = tigerframe.procEntryExit2(frame, bodyCode)
+                val bodyCode'' : tigerassem.instr list = applySimpleRegAlloc(frame, bodyCode')
+                val bodyCode''' : tigerassem.instr list = tigerframe.procEntryExit3(frame, bodyCode'')
+            in
+                bodyCode'''
+            end
+        val bodiesCode = map (fn(stms, frame) => generateInstructions(stms, frame)) canonProcs
+        val instructions = List.concat bodiesCode
         (*
         fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
           | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
@@ -75,7 +112,10 @@ fun main(args) =
         *)
 
         (* assing registers to placeholders (temps) created at codegen *)
-        val _ = map (fn (i) => print((tigerassem.format (fn (j) => j) i)^"\n")) instr
+        val formatedInstructions = map (fn (i) => tigerassem.format (fn (j) => j) i) instructions
+        (* val _ = map (fn (i) => print (i^"\n")) formatedInstructions *)
+
+        val _ = generateAssembly(formatedInstructions)
     in
         print "yes!!\n"
     end     handle Fail s => print("Fail: "^s^"\n")
