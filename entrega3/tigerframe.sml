@@ -47,8 +47,8 @@ val fpPrevLev = 8			(* offset (bytes) *)
 val wSz = 4				(* word size in bytes *)
 val log2WSz = 2				(* base two logarithm of word size in bytes *)
 val calldefs = [rv]
-val callersaves = []
-val calleesaves = []
+val callersaves = [rv, cx, ov]
+val calleesaves = [bx, di, si]
 
 val localsInicial = 0			(* words *)
 val localsGap = ~4 			(* bytes *)
@@ -86,6 +86,32 @@ fun externalCall(s, l) =
 	end
 
 fun procEntryExit1 (frame,body) = body
-fun procEntryExit2 (frame,body) = body
-fun procEntryExit3 (frame,body) = body
+
+fun procEntryExit2 (f,body) = 
+    let
+        val isMain = (name f) = "_tigermain"
+    in case isMain of 
+        false => (let fun store r = 
+                    let 
+                        val newTemp = tigertemp.newtemp()
+                    in (tigerassem.MOVE {assem="movq %'s0, %'d0\n",dst=newTemp,src=r},newTemp) end
+                    val (storeList,tempList) = ListPair.unzip (map store calleesaves)
+                    val fetchTemps = ListPair.zip (tempList, calleesaves)
+                    fun fetch (t,c) = tigerassem.MOVE {assem="movq %'s0, %'d0\n",dst=c,src=t}
+                    val fetchList = map fetch fetchTemps
+                  in storeList@body@fetchList end) 
+        | true => body end
+
+fun procEntryExit3(frame, body) =
+  let
+    val prolog =".globl "^ name frame ^ "\n"
+              ^ name frame ^ ":\n"
+              ^ "\tpushl %ebp\n"
+              ^ "\tmovl %esp, %ebp\n"
+              ^ "\tsubl $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^", %esp\n"
+    val epilog = "\tleave\n\tret\n\n"
+  in
+    {prolog = prolog, body = body, epilog = epilog}
+  end
+
 end

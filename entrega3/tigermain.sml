@@ -24,18 +24,25 @@ fun generateCode (f : tigerframe.frame, stms : tigertree.stm list) : tigerassem.
 fun applySimpleRegAlloc (f : tigerframe.frame, instrs : tigerassem.instr list) : tigerassem.instr list  = tigersimpleregalloc.simpleregalloc f instrs
 
 (* build assembly file *)
-fun generateAssembly (instrs : string list) : unit  =
+fun generateAssembly (instrs: {prolog: string, body: tigerassem.instr list, epilog: string} list) : unit  =
     let
         (* Create  tigermain.s *)
         val fd = TextIO.openOut "tigermain.s"
-        (* Open tigermain.s *)
         (* Put .data *)
         val _ = TextIO.output (fd, ".data\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .data")
         (* Put .text *)
         val _ = TextIO.output (fd, ".text\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
-        (* Put instructions inside .text *)
-        val str : string = List.foldr (fn(l, r) => l^"\n"^r) "" instrs
-        val _ = TextIO.output (fd, str) handle e => (TextIO.closeOut fd; raise Fail "failed to put instructions inside .text")
+        fun genAss (instr) =
+            let
+                val _ = TextIO.output (fd, (#prolog instr)) handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
+                (* Put instructions inside .text *)
+                val str : string = List.foldr (fn(l, r) => l^"\n"^r) "" (map (fn (i) => tigerassem.format (fn (j) => j) i) (#body instr))
+                val _ = TextIO.output (fd, str) handle e => (TextIO.closeOut fd; raise Fail "failed to put instructions inside .text")
+                val _ = TextIO.output (fd, (#epilog instr)) handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
+            in
+                ()
+            end
+        val _ = map genAss instrs
         (* Close file *)
         val _ = TextIO.closeOut fd
     in
@@ -98,12 +105,12 @@ fun main(args) =
                 val bodyCode : tigerassem.instr list = generateCode(frame, stms)
                 val bodyCode' : tigerassem.instr list = tigerframe.procEntryExit2(frame, bodyCode)
                 val bodyCode'' : tigerassem.instr list = applySimpleRegAlloc(frame, bodyCode')
-                val bodyCode''' : tigerassem.instr list = tigerframe.procEntryExit3(frame, bodyCode'')
+                val bodyCode''' : {prolog: string, body: tigerassem.instr list, epilog: string} = tigerframe.procEntryExit3(frame, bodyCode'')
             in
                 bodyCode'''
             end
-        val bodiesCode = map (fn(stms, frame) => generateInstructions(stms, frame)) canonProcs
-        val instructions = List.concat bodiesCode
+        val instructions = map (fn(stms, frame) => generateInstructions(stms, frame)) canonProcs
+        (*val instructions = List.concat bodiesCode*)
         (*
         fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
           | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
@@ -112,10 +119,9 @@ fun main(args) =
         *)
 
         (* assing registers to placeholders (temps) created at codegen *)
-        val formatedInstructions = map (fn (i) => tigerassem.format (fn (j) => j) i) instructions
+        (*val formatedInstructions = map (fn (i) => tigerassem.format (fn (j) => j) i) instructions*)
         (* val _ = map (fn (i) => print (i^"\n")) formatedInstructions *)
-
-        val _ = generateAssembly(formatedInstructions)
+        val _ = generateAssembly(instructions)
     in
         print "yes!!\n"
     end     handle Fail s => print("Fail: "^s^"\n")
