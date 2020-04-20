@@ -24,7 +24,7 @@ fun generateCode (f : tigerframe.frame, stms : tigertree.stm list) : tigerassem.
 fun applySimpleRegAlloc (f : tigerframe.frame, instrs : tigerassem.instr list) : tigerassem.instr list  = tigersimpleregalloc.simpleregalloc f instrs
 
 (* build assembly file *)
-fun generateAssembly (instrs: {prolog: string, body: tigerassem.instr list, epilog: string} list) : unit  =
+fun generateAssembly (instrs: procEntryExit list) : unit  =
     let
         (* Create  tigermain.s *)
         val fd = TextIO.openOut "tigermain.s"
@@ -32,7 +32,7 @@ fun generateAssembly (instrs: {prolog: string, body: tigerassem.instr list, epil
         val _ = TextIO.output (fd, ".data\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .data")
         (* Put .text *)
         val _ = TextIO.output (fd, ".text\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
-        fun genAss (instr) =
+        fun genAss (instr : procEntryExit) =
             let
                 val _ = TextIO.output (fd, (#prolog instr)) handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
                 (* Put instructions inside .text *)
@@ -105,7 +105,7 @@ fun main(args) =
                 val bodyCode : tigerassem.instr list = generateCode(frame, stms)
                 val bodyCode' : tigerassem.instr list = tigerframe.procEntryExit2(frame, bodyCode)
                 val bodyCode'' : tigerassem.instr list = applySimpleRegAlloc(frame, bodyCode')
-                val bodyCode''' : {prolog: string, body: tigerassem.instr list, epilog: string} = tigerframe.procEntryExit3(frame, bodyCode'')
+                val bodyCode''' : procEntryExit = tigerframe.procEntryExit3(frame, bodyCode'')
             in
                 bodyCode'''
             end

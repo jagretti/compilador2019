@@ -31,6 +31,17 @@ datatype access = InFrame of int | InReg of tigertemp.label
 datatype frag = PROC of {body: tigertree.stm, frame: frame}
 	| STRING of tigertemp.label * string
 
+(* The code generator will handle the body of functions or procedures but not *)
+(* the entry / exit sequences. Here the entry sequence is the prolog and the *)
+(* exit sequence is the prolog. *)
+(* The body is the instructions of the function/procedure.*)
+type procEntryExit = {
+    prolog: string,
+    body: tigerassem.instr list,
+    epilog: string
+}
+(*  *)
+
 
 val rv = "%eax"				(* return value  *)
 val ov = "%edx"				(* overflow value (edx en el 386) *)
