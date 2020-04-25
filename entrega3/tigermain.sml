@@ -26,19 +26,32 @@ fun applySimpleRegAlloc (f : tigerframe.frame, instrs : tigerassem.instr list) :
 (* build assembly file *)
 fun generateAssembly (instrs: procEntryExit list) : unit  =
     let
+        (* Write to file descriptor "fd" the string "text" if fails close the file and raise "errorMsg" *)
+        fun output (fd, text, errorMsg) = TextIO.output (fd, text) handle e => (TextIO.closeOut fd; raise Fail errorMsg)
+        (* Format instruction's string if is a label do nothing, otherwise add a tab caracter *)
+        fun instrToString (instr) =
+            let
+                val formated = tigerassem.format (fn (j) => j) instr
+            in
+                if String.isPrefix "L" formated
+                then formated
+                else "\t"^formated
+            end
+
         (* Create  tigermain.s *)
         val fd = TextIO.openOut "tigermain.s"
         (* Put .data *)
-        val _ = TextIO.output (fd, ".data\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .data")
+        val _ = output (fd, ".data\n", "failed to create .data")
         (* Put .text *)
-        val _ = TextIO.output (fd, ".text\n") handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
+        val _ = output (fd, ".text\n", "failed to create .text")
         fun genAss (instr : procEntryExit) =
             let
-                val _ = TextIO.output (fd, (#prolog instr)) handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
+                val _ = output (fd, (#prolog instr), "failed to create .text")
                 (* Put instructions inside .text *)
-                val str : string = List.foldr (fn(l, r) => l^"\n"^r) "" (map (fn (i) => tigerassem.format (fn (j) => j) i) (#body instr))
-                val _ = TextIO.output (fd, str) handle e => (TextIO.closeOut fd; raise Fail "failed to put instructions inside .text")
-                val _ = TextIO.output (fd, (#epilog instr)) handle e => (TextIO.closeOut fd; raise Fail "failed to create .text")
+                val strs : string list = map instrToString (#body instr)
+                val str : string = List.foldr (fn(l, r) => l^"\n"^r) "" strs
+                val _ = output (fd, str, "failed to put instructions inside .text")
+                val _ = output (fd, (#epilog instr), "failed to create .text")
             in
                 ()
             end
