@@ -98,17 +98,17 @@ fun externalCall(s, l) =
 
 fun procEntryExit1 (frame,body) = body
 
-fun procEntryExit2 (f,body) = 
+fun procEntryExit2 (f,body) =
     let
         val isMain = (name f) = "_tigermain"
-    in case isMain of 
-        false => (let fun store r = 
-                    let 
+    in case isMain of
+        false => (let fun store r =
+                    let
                         val newTemp = tigertemp.newtemp()
-                    in (tigerassem.MOVE {assem="movq %'s0, %'d0\n",dst=newTemp,src=r},newTemp) end
+                    in (tigerassem.MOVE {assem="movl `s0, `d0\n",dst=newTemp,src=r},newTemp) end
                     val (storeList,tempList) = ListPair.unzip (map store calleesaves)
                     val fetchTemps = ListPair.zip (tempList, calleesaves)
-                    fun fetch (t,c) = tigerassem.MOVE {assem="movq %'s0, %'d0\n",dst=c,src=t}
+                    fun fetch (t,c) = tigerassem.MOVE {assem="movl `s0, `d0\n",dst=c,src=t}
                     val fetchList = map fetch fetchTemps
                   in storeList@body@fetchList end) 
         | true => body end

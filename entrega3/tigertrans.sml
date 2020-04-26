@@ -104,10 +104,11 @@ end
 
 val datosGlobs = ref ([]: frag list)
 fun procEntryExit{level: level, body} =
-        let     val label = STRING(name(#frame level), "")
+        let
+            (* val label = STRING(name(#frame level), "") *)
                 val body' = PROC{frame= #frame level, body=unNx body}
-                val final = STRING(";;-------", "")
-        in      datosGlobs:=(!datosGlobs@[label, body', final]) end
+            (* val final = STRING(";;-------", "") *)
+        in      datosGlobs:=(!datosGlobs@[ body' ]) end
 fun getResult() = !datosGlobs
 
 fun stringLen s =
@@ -174,7 +175,7 @@ let
 in
         Ex( ESEQ(seq[MOVE(TEMP ra, a),
                 MOVE(TEMP ri, i),
-                EXP(externalCall("_checkindex", [TEMP ra, TEMP ri]))],
+                EXP(externalCall("_checkIndexArray", [TEMP ra, TEMP ri]))],
                 MEM(BINOP(PLUS, TEMP ra,
                         BINOP(MUL, TEMP ri, CONST tigerframe.wSz)))))
 end

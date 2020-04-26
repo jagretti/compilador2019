@@ -179,7 +179,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
 
         and munchExp (CONST i) =
             (* movl $i, d0  =>  d0 = $i *)
-            result (fn r => emit (OPER {assem = "movl $"^Int.toString(i)^", d0",src=[],dst=[r],jump=NONE}))
+            result (fn r => emit (OPER {assem = "movl $"^Int.toString(i)^", `d0",src=[],dst=[r],jump=NONE}))
          |  munchExp (MEM (BINOP (PLUS, e1, CONST i))) =
             (* Libro *)
             (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)

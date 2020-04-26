@@ -24,7 +24,7 @@ fun generateCode (f : tigerframe.frame, stms : tigertree.stm list) : tigerassem.
 fun applySimpleRegAlloc (f : tigerframe.frame, instrs : tigerassem.instr list) : tigerassem.instr list  = tigersimpleregalloc.simpleregalloc f instrs
 
 (* build assembly file *)
-fun generateAssembly (instrs: procEntryExit list) : unit  =
+fun generateAssembly (instrs: procEntryExit list, strings : (string * string) list) : unit  =
     let
         (* Write to file descriptor "fd" the string "text" if fails close the file and raise "errorMsg" *)
         fun output (fd, text, errorMsg) = TextIO.output (fd, text) handle e => (TextIO.closeOut fd; raise Fail errorMsg)
@@ -42,6 +42,17 @@ fun generateAssembly (instrs: procEntryExit list) : unit  =
         val fd = TextIO.openOut "tigermain.s"
         (* Put .data *)
         val _ = output (fd, ".data\n", "failed to create .data")
+        fun printData (label, string)  =
+            let
+                val str = label^": " ^string^"\n"
+                val _ = if label = "" orelse String.isPrefix "_tiger" label orelse  String.isPrefix ";;" label
+                        then output (fd, (string^"\n"), "failed in printData")
+                        else output (fd, str, "failed in printData")
+
+            in
+                ()
+            end
+        val _ =  map printData strings
         (* Put .text *)
         val _ = output (fd, ".text\n", "failed to create .text")
         fun genAss (instr : procEntryExit) =
@@ -128,13 +139,13 @@ fun main(args) =
         fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
           | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
           | printInstr (tigerassem.MOVE move) = print (((#assem) move)^"\n")
-        val _ = map (fn (i) => printInstr i) instructions
+        val _ = map (fn (i) => printInstr i) (List.concat (map (#body) instructions))
         *)
 
         (* assing registers to placeholders (temps) created at codegen *)
         (*val formatedInstructions = map (fn (i) => tigerassem.format (fn (j) => j) i) instructions*)
         (* val _ = map (fn (i) => print (i^"\n")) formatedInstructions *)
-        val _ = generateAssembly(instructions)
+        val _ = generateAssembly(instructions, stringList)
     in
         print "yes!!\n"
     end     handle Fail s => print("Fail: "^s^"\n")

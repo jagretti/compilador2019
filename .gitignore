@@ -10,3 +10,5 @@ tigermain
 errlist
 *.o
 *.swp
+*.s
+*.out
