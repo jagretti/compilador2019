@@ -10,5 +10,9 @@ tigermain
 errlist
 *.o
 *.swp
+<<<<<<< HEAD
 *.s
 *.out
+=======
+tigermain.s
+>>>>>>> bec6e950446d77d9b8ac7c827b67d7cfcf7c969e
