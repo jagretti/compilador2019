@@ -10,3 +10,4 @@ tigermain
 errlist
 *.o
 *.swp
+tigermain.s
