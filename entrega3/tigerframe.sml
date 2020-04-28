@@ -59,7 +59,7 @@ val wSz = 4				(* word size in bytes *)
 val log2WSz = 2				(* base two logarithm of word size in bytes *)
 val calldefs = [rv]
 val callersaves = [rv, cx, ov] (* ax, cx, dx *)
-val calleesaves = [bx, di, si, fp, sp] (* the rest of regirsters *)
+val calleesaves = [bx, di, si] (* the rest of regirsters *)
 
 val localsInicial = 0			(* words *)
 val localsGap = ~4 			(* bytes *)
