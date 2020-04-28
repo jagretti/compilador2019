@@ -45,12 +45,12 @@ fun generateAssembly (instrs: procEntryExit list, strings : (string * string) li
         fun printData (label, string)  =
             let
                 val str = label^": " ^string^"\n"
-                val _ = if label = "" orelse String.isPrefix "_tiger" label orelse  String.isPrefix ";;" label
-                        then output (fd, (string^"\n"), "failed in printData")
-                        else output (fd, str, "failed in printData")
 
             in
-                ()
+                if label = ""
+                then output (fd, (string^"\n"), "failed in printData")
+                else output (fd, str, "failed in printData")
+
             end
         val _ =  map printData strings
         (* Put .text *)
