@@ -101,10 +101,7 @@ fun procEntryExit1 (frame,body) = body
 fun procEntryExit2 (f,body) =
     let
         val isMain = (name f) = "_tigermain"
-    in
-        if (isMain)
-        then body
-        else
+        val saveCallesaveRegisters =
             let
                 fun store r =
                     let
@@ -120,6 +117,8 @@ fun procEntryExit2 (f,body) =
             in
                 storeList@body@fetchList
             end
+    in
+        saveCallesaveRegisters
     end
 
 fun procEntryExit3(frame, body) =
