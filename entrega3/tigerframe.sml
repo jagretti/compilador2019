@@ -96,30 +96,21 @@ fun externalCall(s, l) =
 		ESEQ(SEQ(EXP(CALL(NAME s, l)),MOVE(TEMP raux,TEMP rv)),TEMP raux)
 	end
 
-fun procEntryExit1 (frame,body) = body
+fun seq [] = EXP (CONST 0)
+  | seq [s] = s
+  | seq (x::xs) = SEQ (x, seq xs)
 
-fun procEntryExit2 (f,body) =
+fun procEntryExit1 (frame,body) =
     let
-        val isMain = (name f) = "_tigermain"
-        val saveCallesaveRegisters =
-            let
-                fun store r =
-                    let
-                        val newTemp = tigertemp.newtemp()
-                        val instr = tigerassem.MOVE {assem="movl `s0, `d0\n",dst=newTemp,src=r}
-                    in
-                        (instr, newTemp)
-                    end
-                val (storeList,tempList) = ListPair.unzip (map store calleesaves)
-                val fetchTemps = ListPair.zip (tempList, calleesaves)
-                fun fetch (t,c) = tigerassem.MOVE {assem="movl `s0, `d0\n",dst=c,src=t}
-                val fetchList = map fetch fetchTemps
-            in
-                storeList@body@fetchList
-            end
+        val inFrames = List.map (fn _ => allocLocal frame true) calleesaves
+        val calleesaves' = List.map TEMP calleesaves
+        val saveCallee = List.map (fn (f, r) => MOVE (exp f (TEMP fp), r)) (ListPair.zip (inFrames, calleesaves'))
+        val restoreCallee = List.map (fn (r, f) => MOVE (r, exp f (TEMP fp))) (ListPair.zip (calleesaves', inFrames))
     in
-        saveCallesaveRegisters
+        seq (saveCallee @ [body] @ restoreCallee)
     end
+
+fun procEntryExit2 (f,body) = body
 
 fun procEntryExit3(frame, body) =
   let
@@ -129,6 +120,7 @@ fun procEntryExit3(frame, body) =
               ^ "\tmovl %esp, %ebp\n"
               ^ "\tsubl $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^", %esp\n"
     val epilog = "\tleave\n\tret\n\n"
+    val _ = print("procEntryExit3 :: name="^(name frame)^" actualLocal="^Int.toString (abs(!(#actualLocal frame))) ^"\n")
   in
     {prolog = prolog, body = body, epilog = epilog}
   end

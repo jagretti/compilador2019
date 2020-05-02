@@ -7,9 +7,10 @@ open tigertree
 
 structure A = tigerassem
 
+fun intToString (i : int) : string = if i < 0 then " -" ^ Int.toString(~i) else if i > 0 then Int.toString(i) else "0"
+
 fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr list =
     let
-        val intToString = Int.toString
         val ilist = ref ([] : tigerassem.instr list)
 
         fun emit x = ilist := x :: !ilist
@@ -21,7 +22,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
           | munchStm (MOVE(MEM(BINOP(PLUS, e1, CONST i)), e2)) =
             (* Libro *)
             (* movl s0, i(s1)  =>  mem[s1 + i] = s0 *)
-            emit(A.OPER{assem = "movl `s0, "^ Int.toString i^"(`s1)",
+            emit(A.OPER{assem = "movl `s0, "^ (intToString i)^"(`s1)",
                         src = [munchExp e2, munchExp e1],
                         dst = [],
                         jump = NONE})
@@ -38,19 +39,19 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                          jump = NONE})
           | munchStm (MOVE(TEMP t, CONST n)) =
             (* movl $n, d0  =>  d0 = $n *)
-            emit (A.OPER {assem = "movl $" ^ Int.toString n ^", `d0",
+            emit (A.OPER {assem = "movl $" ^(intToString n)^", `d0",
                           src = [],
                           dst = [t],
                           jump = NONE})
           | munchStm (MOVE(TEMP t1, MEM (BINOP (PLUS, CONST i, TEMP t2)))) =
             (* movl i(s0), d0  =>  d0 = mem[s0 + i] *)
-            emit (A.OPER {assem = "movl " ^ Int.toString i ^ "(`s0), `d0" ,
+            emit (A.OPER {assem = "movl " ^ (intToString i) ^ "(`s0), `d0" ,
                           src = [t2],
                           dst = [t1],
                           jump = NONE})
           | munchStm (MOVE (TEMP t1, MEM (BINOP (PLUS, TEMP t2, CONST i)))) =
             (* movl i(s0), d0  =>  d0 = mem[s0 + i] *)
-            emit (A.OPER {assem = "movl " ^ Int.toString i ^ "(`s0), `d0" ,
+            emit (A.OPER {assem = "movl " ^ (intToString i) ^ "(`s0), `d0" ,
                           src = [t2],
                           dst = [t1],
                           jump = NONE})
@@ -73,21 +74,21 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
           | munchStm (MOVE (MEM (CONST i), e)) =
             (* Libro *)
             (* movl s0, i  =>  mem[i] = s0  *)
-            emit (A.OPER {assem = "movl `s0, "^ Int.toString i,
+            emit (A.OPER {assem = "movl `s0, "^ (intToString i),
                           src = [munchExp e],
                           dst = [],
                           jump = NONE})
           | munchStm (MOVE (MEM (BINOP (PLUS, e1, CONST i)), e2)) =
             (* Libro *)
             (* movl s0, i(s1)  =>  mem[s1 + i] = s0  *)
-            emit (A.OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
+            emit (A.OPER {assem = "movl `s0, "^ (intToString i)^"(`s1)",
                           src = [munchExp e2, munchExp e1],
                           dst = [],
                           jump = NONE})
           | munchStm (MOVE (MEM (BINOP (PLUS, CONST i, e1)), e2)) =
             (* Libro *)
             (* movl s0, i(s1)  =>  mem[s1 + i] = s0  *)
-            emit (A.OPER {assem = "movl `s0, "^ Int.toString i^"(`s1)",
+            emit (A.OPER {assem = "movl `s0, "^ (intToString i)^"(`s1)",
                           src = [munchExp e2, munchExp e1],
                           dst = [],
                           jump = NONE})
@@ -179,18 +180,21 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
 
         and munchExp (CONST i) =
             (* movl $i, d0  =>  d0 = $i *)
-            result (fn r => emit (OPER {assem = "movl $"^Int.toString(i)^", `d0",src=[],dst=[r],jump=NONE}))
+            result (fn r => emit (OPER {assem = "movl $"^(intToString i)^", `d0",
+                                        src=[],
+                                        dst=[r],
+                                        jump=NONE}))
          |  munchExp (MEM (BINOP (PLUS, e1, CONST i))) =
             (* Libro *)
             (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)
-            result (fn r => emit (A.OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
+            result (fn r => emit (A.OPER {assem = "movl "^ (intToString i) ^"(`s0), `d0",
                                           src = [munchExp e1],
                                           dst = [r],
                                           jump = NONE}))
          | munchExp (MEM (BINOP (PLUS, CONST i, e1))) =
            (* Libro *)
            (* movl i(s0), d0  =>  d0 = mem[e1 + i] *)
-           result (fn r => emit (A.OPER {assem = "movl "^ Int.toString i ^"(`s0), `d0",
+           result (fn r => emit (A.OPER {assem = "movl "^ (intToString i) ^"(`s0), `d0",
                                          src = [munchExp e1],
                                          dst = [r],
                                          jump = NONE}))
@@ -206,7 +210,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
            (* Libro *)
            (* movl $i, d0  =>  d0 = $i *)
            (* addl s0, d0  =>  %eax = s0 + d0 *)
-           result (fn r => (emit (OPER {assem = "movl $"^ Int.toString i ^", `d0",
+           result (fn r => (emit (OPER {assem = "movl $"^ (intToString i) ^", `d0",
                                         src = [],
                                         dst = [r],
                                         jump = NONE});
@@ -266,14 +270,14 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                        src = [],
                                        dst = [r],
                                        jump = NONE}))
-         | munchExp (TEMP t) = t
+         | munchExp (TEMP t) = (print("codegen :: TEMP="^t^"\n"); t)
          | munchExp _ = raise Fail "Shouldn't happen (munchExp (_))"
 
 
         and munchArgs params =
             let
                 fun munchArgsSt (CONST i) =
-                    emit (OPER {assem = "pushl $" ^ Int.toString i,
+                    emit (OPER {assem = "pushl $" ^ (intToString i),
                                 src = [],
                                 dst = [],
                                 jump = NONE})

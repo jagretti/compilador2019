@@ -127,6 +127,10 @@ fun main(args) =
         fun generateInstructions(stms, frame) =
             let
                 val bodyCode : tigerassem.instr list = generateCode(frame, stms)
+                fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
+                  | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
+                  | printInstr (tigerassem.MOVE move) = print (((#assem) move)^"\n")
+                val _ = map (fn (i) => printInstr i) bodyCode
                 val bodyCode' : tigerassem.instr list = tigerframe.procEntryExit2(frame, bodyCode)
                 val bodyCode'' : tigerassem.instr list = applySimpleRegAlloc(frame, bodyCode')
                 val bodyCode''' : procEntryExit = tigerframe.procEntryExit3(frame, bodyCode'')
