@@ -15,9 +15,9 @@ val tab_tipos : (string, Tipo) Tabla = tabInserList(
     tabNueva(),
     [("int", TInt), ("string", TString)])
 
-val levelPila: tigertrans.level tigerpila.Pila = tigerpila.nuevaPila1(tigertrans.outermost) 
+val levelPila: tigertrans.level tigerpila.Pila = tigerpila.nuevaPila1(tigertrans.outermost)
 fun pushLevel l = tigerpila.pushPila levelPila l
-fun popLevel() = tigerpila.popPila levelPila 
+fun popLevel() = tigerpila.popPila levelPila
 fun topLevel() = tigerpila.topPila levelPila
 
 val tab_vars : (string, EnvEntry) Tabla = tabInserList(
@@ -66,7 +66,7 @@ fun ppt ty = print ((pt ty)^"\n")
 
 (* Compare the nature of the Tipos *)
 fun tiposIguales (TRecord _) TNil = true
-  | tiposIguales TNil (TRecord _) = true 
+  | tiposIguales TNil (TRecord _) = true
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
   | tiposIguales (TArray (_, u1)) (TArray (_, u2)) = (u1=u2)
   | tiposIguales a b = (a=b)
@@ -80,7 +80,7 @@ fun transExp(venv, tenv) =
         | trexp(StringExp(s, _)) = {exp=stringExp(s), ty=TString}
         | trexp(CallExp({func, args}, nl)) =
             let
-                val (argtypes, resultstype, level, label, extern) = 
+                val (argtypes, resultstype, level, label, extern) =
                     case tabBusca(func, venv) of
                         SOME (Func {formals=formals, result=result, level=level, label=label, extern=extern}) => (formals, result, level, label, extern)
                         | _ => error("trexp::CallExp - Funcion "^func^" no definida", nl)
@@ -88,9 +88,9 @@ fun transExp(venv, tenv) =
                 val argexplist_onlyexp = List.map (#exp) argexplist
                 val isproc = TUnit = resultstype
                 val argexplisttypes = List.map (#ty) argexplist
-                val _ = if List.length argtypes = List.length argexplisttypes then () 
+                val _ = if List.length argtypes = List.length argexplisttypes then ()
                             else error("trexp::CallExp - Funcion "^func^" invocada con una cantidad incorrecta de argumentos!", nl)
-                val _ = List.map (fn(x, y) => if tiposIguales x y then x 
+                val _ = List.map (fn(x, y) => if tiposIguales x y then x
                             else error("trexp::CallExp error de tipos", nl)) (ListPair.zip(argexplisttypes, argtypes))
                         handle Empty => error("trexp::CallExp - Nº de args", nl)
             in
@@ -210,7 +210,7 @@ fun transExp(venv, tenv) =
                 val ttest = trexp test
                 val _ = preWhileForExp()
                 val tbody = trexp body
-                val expwhile = whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()} 
+                val expwhile = whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()}
                 val _ = postWhileForExp()
             in
                 if tiposIguales (#ty ttest)   TInt andalso #ty tbody = TUnit then {exp=expwhile, ty=TUnit}
@@ -267,10 +267,10 @@ fun transExp(venv, tenv) =
             end
         and trvar(SimpleVar s, nl) =
             let
-                val (access, level, typ) = 
+                val (access, level, typ) =
                     case tabBusca(s, venv) of
                         SOME (VIntro{access, level}) => (access, level, TInt)
-                        | SOME (Var{ty, access, level}) => (access, level, ty)                        
+                        | SOME (Var{ty, access, level}) => (access, level, ty)
                         | _ => error("Variable "^s^" no definida en el scope", nl)
             in
                 {exp=simpleVar(access, level), ty=typ}
@@ -381,7 +381,7 @@ fun transExp(venv, tenv) =
                         fun addParam [] [] venv = venv
                           | addParam (t::ts) ({name=name, escape=escape,...}::fields) venv =
                             let
-                                val acc = allocArg (topLevel()) (!escape)
+                                val acc = allocArg (topLevel()) true (*)(!escape)*)
                                 val lvl = getActualLev()
                                 val venv' = tabRInserta(name, Var{ty=t, access=acc, level=lvl}, venv)
                             in

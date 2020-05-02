@@ -2,11 +2,11 @@ structure tigersimpleregalloc :> tigersimpleregalloc =
 struct
 	structure frame = tigerframe
 	open tigerassem
-	
+
 	fun simpleregalloc (frm:frame.frame) (body:instr list) =
 	let
 		(* COMPLETAR: Temporarios que ya tienen color asignado (p.ej, el temporario que representa a rax) *)
-		val precolored = [frame.rv, frame.fp, frame.ov]
+		val precolored = [frame.rv, frame.fp, frame.ov, "%ebx", "%esi", "%edi"]
 		(* COMPLETAR: Temporarios que se pueden usar (p.ej, el temporario que representa a rax. Diferencia con precolored: el temporario que representa a rbp no se puede usar) *)
 		val asignables = [frame.rv, "%edx", "%ebx", "%ecx", "%esi", "%edi"]
 		(* COMPLETAR: movaMem crea una instrucción que mueve un temporario a memoria. movaTemp, de memoria a un temporario.*)
@@ -24,7 +24,7 @@ struct
 			end
 		val temps =
 			let
-				val tempList = 
+				val tempList =
 					let
 						fun f (OPER r, tmplist) = List.concat [#dst r, #src r, tmplist]
 						| f (LABEL _, tmplist) = tmplist
