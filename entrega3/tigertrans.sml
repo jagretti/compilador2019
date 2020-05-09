@@ -167,18 +167,18 @@ fun fieldVar(var, field) =
     end
 
 fun subscriptVar(arr, ind) =
-let
+    let
         val a = unEx arr
         val i = unEx ind
         val ra = newtemp()
         val ri = newtemp()
-in
+    in
         Ex( ESEQ(seq[MOVE(TEMP ra, a),
-                MOVE(TEMP ri, i),
-                EXP(externalCall("_checkIndexArray", [TEMP ra, TEMP ri]))],
+            MOVE(TEMP ri, i),
+            EXP(externalCall("_checkIndexArray", [TEMP ra, TEMP ri]))],
                 MEM(BINOP(PLUS, TEMP ra,
-                        BINOP(MUL, TEMP ri, CONST tigerframe.wSz)))))
-end
+                    BINOP(MUL, TEMP ri, CONST tigerframe.wSz)))))
+    end
 
 fun recordExp l =
     let val ret = newtemp()
@@ -292,7 +292,7 @@ fun forExp {lo, hi, var, body} =
                     LABEL l2,
                     unNx body,
                     CJUMP (EQ, index, TEMP t, final, l1),
-                    LABEL l1, 
+                    LABEL l1,
                     MOVE (index, BINOP (PLUS, index, CONST 1)),
                     JUMP (NAME l2, [l2]),
                     LABEL final])
@@ -353,7 +353,7 @@ fun binOpIntExp {left, oper, right} =
         PlusOp => Ex (BINOP (PLUS, l, r))
         | MinusOp => Ex (BINOP (MINUS, l, r))
         | TimesOp => Ex (BINOP (MUL, l, r))
-        | DivideOp => Ex (BINOP (DIV, l, r))    
+        | DivideOp => Ex (BINOP (DIV, l, r))
     end
 
 fun binOpIntRelExp {left,oper,right} =

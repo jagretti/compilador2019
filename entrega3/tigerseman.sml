@@ -288,13 +288,14 @@ fun transExp(venv, tenv) =
                         {exp=fieldVar(varexp, vindex), ty=(!vtype)}
                     end
           | trvar(SubscriptVar(v, e), nl) =
+                    (* v es el arreglo - e es el indice *)
                     let
                         val {exp=expexp, ty=exptype} = trexp(e)
                         val {exp=varexp, ty=vartype} = trvar(v, nl)
                         val _ = if tiposIguales exptype (TInt) then () else error("trvar::SubscriptVar El indice debe ser entero pero es "^pt(exptype), nl)
                     in
                         case vartype of
-                            TArray (ty, _) => {exp=subscriptVar(expexp, varexp), ty=(!ty)}
+                            TArray (ty, _) => {exp=subscriptVar(varexp, expexp), ty=(!ty)}
                           | _ => error("trvar: Indexando algo que no es un arreglo", nl)
                     end
         and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},nl)) =
