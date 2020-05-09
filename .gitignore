@@ -12,3 +12,4 @@ errlist
 *.swp
 *.s
 *.out
+.gdb_history
