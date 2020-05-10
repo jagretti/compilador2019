@@ -66,23 +66,23 @@ depend: tigerabs.sml tigergrm.sml tigerlex.sml tigermain.sml \
 	$(MOSMLTOOLS)/mosmldep >> Makefile
 
 ### DO NOT DELETE THIS LINE
-tigerescap.uo: tigerescap.ui tigertab.ui tigerabs.uo 
-tigerescap.ui: tigerabs.uo 
-tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigerabs.uo \
-    tigertrans.ui tigertopsort.ui
-tigersres.uo: tigertab.ui tigertips.uo tigertemp.ui tigerabs.uo 
-tigergrm.uo: tigergrm.ui tigernlin.uo tigerabs.uo 
-tigertopsort.ui: tigertab.ui tigertips.uo tigerabs.uo 
 tigertopsort.uo: tigertopsort.ui tigertab.ui tigertips.uo tigerabs.uo \
     tigermuestratipos.ui 
-tigertrans.uo: tigertrans.ui 
-tigerlex.uo: tigergrm.ui tigernlin.uo 
-tigerpp.uo: tigerabs.uo tigertips.uo tigersres.uo
 tigerseman.ui: tigerabs.uo 
-tigermuestratipos.uo: tigermuestratipos.ui tigertips.uo 
-tigermuestratipos.ui: tigertips.uo 
+tigerescap.ui: tigerabs.uo 
+tigerlex.uo: tigergrm.ui tigernlin.uo 
+tigertrans.uo: tigertrans.ui 
+tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigertopsort.ui \
+    tigertemp.ui tigerabs.uo tigertrans.ui tigerpp.uo 
 tigermain.uo: tigerseman.ui tigerescap.ui tigergrm.ui tigerlex.uo \
     tigerpp.uo 
-tigertab.uo: tigertab.ui 
-tigertemp.uo: tigertemp.ui 
+tigersres.uo: tigertab.ui tigertips.uo tigertemp.ui tigerabs.uo 
+tigerpp.uo: tigersres.uo tigertips.uo tigerabs.uo 
+tigertopsort.ui: tigertab.ui tigertips.uo tigerabs.uo 
 tigergrm.ui: tigerabs.uo 
+tigermuestratipos.uo: tigermuestratipos.ui tigertips.uo 
+tigertemp.uo: tigertemp.ui 
+tigertab.uo: tigertab.ui 
+tigerescap.uo: tigerescap.ui tigertab.ui tigerabs.uo 
+tigergrm.uo: tigergrm.ui tigernlin.uo tigerabs.uo 
+tigermuestratipos.ui: tigertips.uo 

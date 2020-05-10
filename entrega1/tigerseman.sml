@@ -65,7 +65,7 @@ fun transExp(venv, tenv) =
         | trexp(NilExp _)= {exp=SCAF, ty=TNil}
         | trexp(IntExp(i, _)) = {exp=SCAF, ty=TInt}
         | trexp(StringExp(s, _)) = {exp=SCAF, ty=TString}
-        | trexp(CallExp({func, args}, nl)) = 
+        | trexp(CallExp({func, args}, nl)) =
             let
                 val (argtypes, resultstype) = case tabBusca(func, venv) of
                                                 SOME (Func {formals=formals, result=result, level=_, label=_, extern=_}) => (formals,result)
@@ -134,7 +134,6 @@ fun transExp(venv, tenv) =
                 val _ = verificar cs tfields
 
             in
-		        print("Pase por RecordExp\n");
                 {exp=SCAF, ty=tyr}
             end
         | trexp(SeqExp(s, nl)) =
@@ -143,7 +142,6 @@ fun transExp(venv, tenv) =
                 val exprs = map (fn{exp, ty} => exp) lexti
                 val {exp, ty=tipo} = hd(rev lexti)
             in
-                print "Pase por SeqExp!!\n";
                 {exp=SCAF, ty=tipo}
             end
         | trexp(AssignExp({var, exp}, nl)) =
@@ -155,7 +153,6 @@ fun transExp(venv, tenv) =
                 val {exp=expexp, ty=exptype} = trexp exp
                 val _ = if exptype <> TUnit andalso tiposIguales exptype vartype then () else error("trexp::AssignExp - El tipo declarado no coincide con el tipo asignado", nl)
             in
-                print "Pase por AssignExp!!\n";
                 {exp=SCAF, ty=TUnit}
             end
         | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
@@ -199,11 +196,10 @@ fun transExp(venv, tenv) =
                 val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
                 val {exp=expbody,ty=tybody}=transExp (venv', tenv') body
             in
-                print "Pase por LetExp!!\n";
                 {exp=SCAF, ty=tybody}
             end
         | trexp(BreakExp nl) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)
+            {exp=SCAF, ty=TUnit}
         | trexp(ArrayExp({typ, size, init}, nl)) =
             let
                 val {exp=sizeexp,ty=sizetype} = trexp size
@@ -215,7 +211,6 @@ fun transExp(venv, tenv) =
                                 | _ => error("trexp::ArrayExp - Tipo "^typ^" no definido", nl))
                 val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^tigerpp.prettyPrintTipo(inittype)^"no coincide con el tipo declarado "^typ, nl)
             in
-                print "Pase por ArrayExp!!\n";
                 {exp=SCAF, ty=TArray (ta, ur)}
             end
         and trvar(SimpleVar s, nl) = (* Buscamos si esta definida la variable en el scope actual *)
@@ -224,7 +219,6 @@ fun transExp(venv, tenv) =
                     SOME (Var{ty}) => ty
                     | _ => error("Variable "^s^" no definida en el scope", nl)
             in
-                (* tigerpp.prettyPrintTipo(vartype); *)
                 {exp=SCAF, ty=vartype}
             end
         | trvar(FieldVar(v, s), nl) =
@@ -256,7 +250,6 @@ fun transExp(venv, tenv) =
                                   |_ => ()
                 val venv' = tabInserta(name, (Var{ty=tyinit}), venv)
             in
-                print "Pase por trdec::VarDec1!!\n";
                 (venv', tenv, [])
             end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
@@ -268,7 +261,6 @@ fun transExp(venv, tenv) =
                 val _ = if tiposIguales tyinit tyv then () else error("trdec::VarDec El valor de la variable "^name^" no coincide con su tipo "^tigerpp.prettyPrintTipo(tyv), pos)
                 val venv' = tabInserta(name, (Var{ty=tyv}), venv)
             in
-                print "Pase por trdec::VarDec2!!\n";
                 (venv', tenv, [])
             end
         | trdec (venv,tenv) (FunctionDec fs) =
@@ -311,8 +303,6 @@ fun transExp(venv, tenv) =
                                             NONE => error("trdec: Funcion no declarada "^name ,nl)
                                             | SOME (Func{result,...}) => result
                                             | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
-                      (* val _ = printTipo tyBody
-                        val _ = printTipo tyResult *)
                         val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^tigerpp.prettyPrintTipo(tyResult)^" y el tipo de su cuerpo "^tigerpp.prettyPrintTipo(tyBody)^" no coinciden",nl)
                     in
 		                addParams venv fss
@@ -320,7 +310,6 @@ fun transExp(venv, tenv) =
                 val venv' = aux venv fs
                 val _ = addParams venv' fs
 	        in
-                print "Pase por trdec::FunctionDec!!\n";
                 (venv', tenv, [])
 	        end
         | trdec (venv,tenv) (TypeDec ts) =
@@ -332,7 +321,6 @@ fun transExp(venv, tenv) =
                 val ltsinpos = List.map (fn (x,pos) => x) ts
                 val tenv' = tigertopsort.fijaTipos ltsinpos tenv
 	        in
-                    print "Pase por trdec::TypeDec!!\n";
 	            (venv, tenv', [])
 	        end
     in trexp end
