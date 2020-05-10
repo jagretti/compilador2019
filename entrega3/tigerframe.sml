@@ -71,7 +71,7 @@ fun newFrame{name, formals} = {
     formals=formals,
     locals=[],
     actualLocal=ref localsInicial, (* number of locals variables allocated in the frame *)
-    actualArg=ref argsInicial      (* number of arguments allocated access from within the current level *)
+    actualArg=ref argsInicial      (* number of arguments allocated and access from within the current level *)
 }
 
 fun name(f: frame) = #name f
@@ -83,12 +83,18 @@ fun formals({formals=f, ...}: frame) =
         aux(argsInicial * wSz, f)
     end
 
-(*
-Aloca un argumento, y setea la variable #actualArg apuntando al proximo espacio
-El primer argumento es:
-fp+12 siendo 12 = (#actualArg * 4) + 4 = 4 * (#actualArg + 1) con #actualArg=2
-Y setea #actualArg = 3
-*)
+(* Aloca un argumento. Puede ser alocado como un offset frame actual o en un registro. *)
+(* Si la variable es escapada, calcula el offset a partir del frame utilizando *)
+(* el numero argumentos previos y actualizando #actualArg. *)
+(* Ejemplo: alocar el primer argumento "escapado". *)
+(* - Requisitos: la variable debe estar en fp+12. Ver comentario arriba de este archivo. *)
+(* - Estado inicial: frame.actualArg es 2 *)
+(* - Solucion: *)
+(*     +12 = (#actualArg * wsz) + argsOffInicial *)
+(*         = (#actualArg * 4)   + 4 *)
+(*         = (#actualArg + 1)   * 4 *)
+(*         = resutado explicado en la cabecera de este archivo *)
+(*     Ademas actualizar frame#actualArg con una entrada mas *)
 fun allocArg (f: frame) b =
     case b of
         true =>
