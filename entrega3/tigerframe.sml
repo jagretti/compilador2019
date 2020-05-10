@@ -70,8 +70,8 @@ fun newFrame{name, formals} = {
     name=name,
     formals=formals,
     locals=[],
-    actualLocal=ref localsInicial,
-    actualArg=ref argsInicial
+    actualLocal=ref localsInicial, (* number of locals variables allocated in the frame *)
+    actualArg=ref argsInicial      (* number of arguments allocated access from within the current level *)
 }
 
 fun name(f: frame) = #name f
@@ -99,12 +99,17 @@ fun allocArg (f: frame) b =
             end
         | false => InReg(tigertemp.newtemp())
 
-(*
-Aloca una variable local, y setea la variable #actualLocal apuntando al proximo espacio disponible
-La primer variable local es:
-fp-4 siendo -4 = (#actualLocal * 4) - 4 = (#actualLocal - 1) * 4 siendo #actualLocal=0
-Y setea #actualLocal=-1
-*)
+(* Aloca una variable local. Puede ser alocada en el frame o en un registro. *)
+(* Si la variable es escapada, reserva espacio en el frame actualizando #actualLocal. *)
+(* Ejemplo: alocar la primer variable local "escapada". *)
+(* - Requisitos: la variable debe estar en fp-4. Ver comentario arriba de este archivo. *)
+(* - Estado inicial: frame.actualLocal es cero *)
+(* - Solucion: *)
+(*     -4 = (#actualLocal * wsz) - localGap *)
+(*        = (#actualLocal * 4) - 4 *)
+(*        = (#actualLocal - 1) * 4 *)
+(*        = resutado explicado en la cabecera de este archivo *)
+(*     Ademas actualizar frame#actualLocal con una entrada mas *)
 fun allocLocal (f: frame) b =
     case b of
         true =>
