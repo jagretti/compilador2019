@@ -15,9 +15,9 @@ val tab_tipos : (string, Tipo) Tabla = tabInserList(
     tabNueva(),
     [("int", TInt), ("string", TString)])
 
-val levelPila: tigertrans.level tigerpila.Pila = tigerpila.nuevaPila1(tigertrans.outermost) 
+val levelPila: tigertrans.level tigerpila.Pila = tigerpila.nuevaPila1(tigertrans.outermost)
 fun pushLevel l = tigerpila.pushPila levelPila l
-fun popLevel() = tigerpila.popPila levelPila 
+fun popLevel() = tigerpila.popPila levelPila
 fun topLevel() = tigerpila.topPila levelPila
 
 val tab_vars : (string, EnvEntry) Tabla = tabInserList(
@@ -44,29 +44,15 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
         formals=[TInt], result=TUnit, extern=true})
     ])
 
-(*fun tipoReal (TTipo (s, ref (SOME (t)))) = tipoReal t
-  | tipoReal t = t*)
-
-(* Print the keys of of the given table/map *)
-fun printTable location tenv =
-    let
-        val _ = print ("["^location^"] type environment >>>\n")
-        val _ = List.app (fn (name) => print ("\t"^name^"\n")) (tabClaves tenv)
-        val _ = print ("["^location^"] type environment <<<\n")
-    in
-        ()
-    end
-
 (* PrettyTipo convert a tigertips.Tipo object to string *)
 fun pt ty = tigerpp.prettyPrintTipo ty
 
 (* PrintPrettyTipo print the PrettyTipo *)
 fun ppt ty = print ((pt ty)^"\n")
 
-
 (* Compare the nature of the Tipos *)
 fun tiposIguales (TRecord _) TNil = true
-  | tiposIguales TNil (TRecord _) = true 
+  | tiposIguales TNil (TRecord _) = true
   | tiposIguales (TRecord (_, u1)) (TRecord (_, u2 )) = (u1=u2)
   | tiposIguales (TArray (_, u1)) (TArray (_, u2)) = (u1=u2)
   | tiposIguales a b = (a=b)
@@ -80,7 +66,7 @@ fun transExp(venv, tenv) =
         | trexp(StringExp(s, _)) = {exp=stringExp(s), ty=TString}
         | trexp(CallExp({func, args}, nl)) =
             let
-                val (argtypes, resultstype, level, label, extern) = 
+                val (argtypes, resultstype, level, label, extern) =
                     case tabBusca(func, venv) of
                         SOME (Func {formals=formals, result=result, level=level, label=label, extern=extern}) => (formals, result, level, label, extern)
                         | _ => error("trexp::CallExp - Funcion "^func^" no definida", nl)
@@ -88,9 +74,9 @@ fun transExp(venv, tenv) =
                 val argexplist_onlyexp = List.map (#exp) argexplist
                 val isproc = TUnit = resultstype
                 val argexplisttypes = List.map (#ty) argexplist
-                val _ = if List.length argtypes = List.length argexplisttypes then () 
+                val _ = if List.length argtypes = List.length argexplisttypes then ()
                             else error("trexp::CallExp - Funcion "^func^" invocada con una cantidad incorrecta de argumentos!", nl)
-                val _ = List.map (fn(x, y) => if tiposIguales x y then x 
+                val _ = List.map (fn(x, y) => if tiposIguales x y then x
                             else error("trexp::CallExp error de tipos", nl)) (ListPair.zip(argexplisttypes, argtypes))
                         handle Empty => error("trexp::CallExp - Nº de args", nl)
             in
@@ -116,7 +102,6 @@ fun transExp(venv, tenv) =
                 if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then
                     {exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=NeqOp,right=expr} else binOpIntRelExp {left=expl,oper=NeqOp,right=expr}, ty=TInt}
                     else error("Tipos no comparables "^pt(tyl)^" "^pt(tyr), nl)
-                    (*else error("Tipos no comparables", nl)*)
             end
         | trexp(OpExp({left, oper, right}, nl)) =
             let
@@ -175,8 +160,6 @@ fun transExp(venv, tenv) =
           in
               {exp=seqExp (exprs), ty=tipo}
           end
-        (*| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)*)
         | trexp(AssignExp({var, exp}, nl)) =
              let
                 val {exp=varexp, ty=vartype} = trvar(var, nl)
@@ -210,7 +193,7 @@ fun transExp(venv, tenv) =
                 val ttest = trexp test
                 val _ = preWhileForExp()
                 val tbody = trexp body
-                val expwhile = whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()} 
+                val expwhile = whileExp {test=(#exp ttest), body=(#exp tbody), lev=topLevel()}
                 val _ = postWhileForExp()
             in
                 if tiposIguales (#ty ttest)   TInt andalso #ty tbody = TUnit then {exp=expwhile, ty=TUnit}
@@ -262,15 +245,14 @@ fun transExp(venv, tenv) =
                                 | _ => error("trexp::ArrayExp - Tipo "^typ^" no definido", nl))
                 val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^pt(inittype)^"no coincide con el tipo declarado "^typ, nl)
             in
-                print "Pase por ArrayExp!!\n";
                 {exp=arrayExp{size=sizeexp, init=initexp}, ty=TArray (ta, ur)}
             end
         and trvar(SimpleVar s, nl) =
             let
-                val (access, level, typ) = 
+                val (access, level, typ) =
                     case tabBusca(s, venv) of
                         SOME (VIntro{access, level}) => (access, level, TInt)
-                        | SOME (Var{ty, access, level}) => (access, level, ty)                        
+                        | SOME (Var{ty, access, level}) => (access, level, ty)
                         | _ => error("Variable "^s^" no definida en el scope", nl)
             in
                 {exp=simpleVar(access, level), ty=typ}
@@ -308,7 +290,6 @@ fun transExp(venv, tenv) =
                 val venv' = tabInserta(name, (Var{ty=tyinit, access=acc, level=level}), venv)
                 val ci = varDec acc
             in
-                print "Pase por trdec::VarDec1!!\n";
                 (venv', tenv, [assignExp{var=ci, exp=expinit}])
             end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
@@ -323,7 +304,6 @@ fun transExp(venv, tenv) =
                 val venv' = tabRInserta(name, (Var{ty=tyv, access=acc, level=level}), venv)
                 val ci = varDec acc
             in
-                print "Pase por trdec::VarDec2!!\n";
                 (venv', tenv, [assignExp{var=ci, exp=expinit}])
             end
         | trdec (venv,tenv) (FunctionDec fs) =
@@ -407,7 +387,6 @@ fun transExp(venv, tenv) =
                 val venv' = aux venv fs
                 val cis = addParams venv' fs []
             in
-                print "Pase por trdec::FunctionDec!!\n";
                 (venv', tenv, cis)
             end
         | trdec (venv,tenv) (TypeDec ts) =
@@ -420,7 +399,6 @@ fun transExp(venv, tenv) =
               val ltsinpos = List.map (fn (x,pos) => x) ts
               val tenv' = tigertopsort.fijaTipos ltsinpos tenv
           in
-              print "Pase por trdec::TypeDec!!\n";
               (venv, tenv', [])
           end
     in trexp end

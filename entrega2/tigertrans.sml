@@ -291,7 +291,7 @@ fun forExp {lo, hi, var, body} =
                     LABEL l2,
                     unNx body,
                     CJUMP (EQ, index, TEMP t, final, l1),
-                    LABEL l1, 
+                    LABEL l1,
                     MOVE (index, BINOP (PLUS, index, CONST 1)),
                     JUMP (NAME l2, [l2]),
                     LABEL final])
@@ -352,7 +352,7 @@ fun binOpIntExp {left, oper, right} =
         PlusOp => Ex (BINOP (PLUS, l, r))
         | MinusOp => Ex (BINOP (MINUS, l, r))
         | TimesOp => Ex (BINOP (MUL, l, r))
-        | DivideOp => Ex (BINOP (DIV, l, r))    
+        | DivideOp => Ex (BINOP (DIV, l, r))
     end
 
 fun binOpIntRelExp {left,oper,right} =
