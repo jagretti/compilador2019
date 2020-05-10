@@ -122,33 +122,17 @@ fun main(args) =
         (* call interpreter *)
         val _ = if interp then inter debug canonProcs stringList else ()
 
-        (* generateCode        =>  translation to x86 instruction set *)
-        (* applySimpleRegAllec =>  select registers *)
         fun generateInstructions(stms, frame) =
             let
+                (* generateCode        =>  translation to x86 instruction set *)
                 val bodyCode : tigerassem.instr list = generateCode(frame, stms)
-                fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
-                  | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
-                  | printInstr (tigerassem.MOVE move) = print (((#assem) move)^"\n")
-                val _ = map (fn (i) => printInstr i) bodyCode
-                val bodyCode' : tigerassem.instr list = tigerframe.procEntryExit2(frame, bodyCode)
-                val bodyCode'' : tigerassem.instr list = applySimpleRegAlloc(frame, bodyCode')
+                (* applySimpleRegAllec =>  select registers *)
+                val bodyCode'' : tigerassem.instr list = applySimpleRegAlloc(frame, bodyCode)
                 val bodyCode''' : procEntryExit = tigerframe.procEntryExit3(frame, bodyCode'')
             in
                 bodyCode'''
             end
         val instructions = map (fn(stms, frame) => generateInstructions(stms, frame)) canonProcs
-        (*val instructions = List.concat bodiesCode*)
-        (*
-        fun printInstr (tigerassem.OPER oper) = print (((#assem) oper)^"\n")
-          | printInstr (tigerassem.LABEL lab) = print (((#assem) lab)^"\n")
-          | printInstr (tigerassem.MOVE move) = print (((#assem) move)^"\n")
-        val _ = map (fn (i) => printInstr i) (List.concat (map (#body) instructions))
-        *)
-
-        (* assing registers to placeholders (temps) created at codegen *)
-        (*val formatedInstructions = map (fn (i) => tigerassem.format (fn (j) => j) i) instructions*)
-        (* val _ = map (fn (i) => print (i^"\n")) formatedInstructions *)
         val _ = generateAssembly(instructions, stringList)
     in
         print "yes!!\n"

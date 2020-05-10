@@ -46,19 +46,17 @@ val log2WSz = 2				(* base two logarithm of word size in bytes *)
 val calldefs = [rv]
 val callersaves = [rv, cx, ov] (* ax, cx, dx *)
 val calleesaves = [bx, di, si] (* the rest of regirsters *)
-val argsInicial = 2    (* words *)
-val argsOffInicial = 4 (* words *)
-val localsInicial = 0			(* words *)
-val localsGap = ~4 			(* bytes *)
-val specialregs = [rv, fp, sp]
-val argsGap = wSz
+val positionOfFirstArgument = 2    (* position of the first argument *)
+val argumentsOffset = 4 (* words *)
+val initialNumberOfLocalVariables = 0			(* words *)
+val localVariablesOffset = ~4 			(* bytes *)
 
 type frame = {
     name: string,
     formals: bool list,
     locals: bool list,
     numberOfLocalVariables: int ref,
-    actualArg: int ref
+    numberOfArguments: int ref
 }
 
 type register = string
@@ -70,36 +68,31 @@ fun newFrame{name, formals} = {
     name=name,
     formals=formals,
     locals=[],
-    numberOfLocalVariables=ref localsInicial, (* number of locals variables allocated in the frame *)
-    actualArg=ref argsInicial      (* number of arguments allocated and access from within the current level *)
+    numberOfLocalVariables=ref initialNumberOfLocalVariables, (* number of locals variables allocated in the frame *)
+    numberOfArguments=ref positionOfFirstArgument      (* number of arguments allocated and access from within the current level *)
 }
 
 fun name(f: frame) = #name f
 
-fun formals({formals=f, ...}: frame) =
-    let  fun aux(n, []) = []
-        | aux(n, h::t) = InFrame(n)::aux(n+argsGap, t)
-    in
-        aux(argsInicial * wSz, f)
-    end
+fun formals({formals=f, ...}: frame) = [] (* COMPLETAR *)
 
 (* Aloca un argumento. Puede ser alocado como un offset frame actual o en un registro. *)
 (* Si la variable es escapada, calcula el offset a partir del frame utilizando *)
-(* el numero argumentos previos y actualizando #actualArg. *)
+(* el numero argumentos previos y actualizando #numberOfArguments. *)
 (* Ejemplo: alocar el primer argumento "escapado". *)
 (* - Requisitos: la variable debe estar en fp+12. Ver comentario arriba de este archivo. *)
-(* - Estado inicial: frame.actualArg es 2 *)
+(* - Estado inicial: frame.numberOfArguments es 2 *)
 (* - Solucion: *)
-(*     +12 = (#actualArg * wsz) + argsOffInicial *)
-(*         = (#actualArg * 4)   + 4 *)
-(*         = (#actualArg + 1)   * 4 *)
-(*         = resutado explicado en la cabecera de este archivo *)
-(*     Ademas actualizar frame#actualArg con una entrada mas *)
+(*     +12 = (#numberOfArguments * wsz) + argumentsOffset *)
+(*         = (#numberOfArguments * 4)   + 4 *)
+(*         = (#numberOfArguments + 1)   * 4 *)
+(*         = resultado explicado en la cabecera de este archivo *)
+(*     Ademas actualizar frame#numberOfArguments con una entrada mas *)
 fun allocArg (f: frame) b =
     case b of
         true =>
-            let val ret = (!(#actualArg f) * wSz) + argsOffInicial
-                val _ = #actualArg f := !(#actualArg f)+1
+            let val ret = (!(#numberOfArguments f) * wSz) + argumentsOffset
+                val _ = #numberOfArguments f := !(#numberOfArguments f)+1
             in
                 InFrame ret
             end
@@ -119,7 +112,7 @@ fun allocArg (f: frame) b =
 fun allocLocal (f: frame) b =
     case b of
         true =>
-            let val ret =  (!(#numberOfLocalVariables f) * wSz) + localsGap
+            let val ret =  (!(#numberOfLocalVariables f) * wSz) + localVariablesOffset
                 val _ = #numberOfLocalVariables f:=(!(#numberOfLocalVariables f)-1);
             in
                 InFrame ret

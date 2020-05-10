@@ -44,19 +44,6 @@ val tab_vars : (string, EnvEntry) Tabla = tabInserList(
         formals=[TInt], result=TUnit, extern=true})
     ])
 
-(*fun tipoReal (TTipo (s, ref (SOME (t)))) = tipoReal t
-  | tipoReal t = t*)
-
-(* Print the keys of of the given table/map *)
-fun printTable location tenv =
-    let
-        val _ = print ("["^location^"] type environment >>>\n")
-        val _ = List.app (fn (name) => print ("\t"^name^"\n")) (tabClaves tenv)
-        val _ = print ("["^location^"] type environment <<<\n")
-    in
-        ()
-    end
-
 (* PrettyTipo convert a tigertips.Tipo object to string *)
 fun pt ty = tigerpp.prettyPrintTipo ty
 
@@ -116,7 +103,6 @@ fun transExp(venv, tenv) =
                 if tiposIguales tyl tyr andalso not (tyl=TNil andalso tyr=TNil) andalso tyl<>TUnit then
                     {exp=if tiposIguales tyl TString then binOpStrExp {left=expl,oper=NeqOp,right=expr} else binOpIntRelExp {left=expl,oper=NeqOp,right=expr}, ty=TInt}
                     else error("Tipos no comparables "^pt(tyl)^" "^pt(tyr), nl)
-                    (*else error("Tipos no comparables", nl)*)
             end
         | trexp(OpExp({left, oper, right}, nl)) =
             let
@@ -175,8 +161,6 @@ fun transExp(venv, tenv) =
           in
               {exp=seqExp (exprs), ty=tipo}
           end
-        (*| trexp(AssignExp({var=SimpleVar s, exp}, nl)) =
-            {exp=SCAF, ty=TUnit} (*COMPLETAR*)*)
         | trexp(AssignExp({var, exp}, nl)) =
              let
                 val {exp=varexp, ty=vartype} = trvar(var, nl)
@@ -250,7 +234,7 @@ fun transExp(venv, tenv) =
                 {exp=seqExp(expdecs@[expbody]), ty=tybody}
             end
         | trexp(BreakExp nl) =
-            {exp=breakExp(), ty=TUnit} (*COMPLETAR*)
+            {exp=breakExp(), ty=TUnit}
         | trexp(ArrayExp({typ, size, init}, nl)) =
             let
                 val {exp=sizeexp,ty=sizetype} = trexp size
@@ -262,7 +246,6 @@ fun transExp(venv, tenv) =
                                 | _ => error("trexp::ArrayExp - Tipo "^typ^" no definido", nl))
                 val _ = if tiposIguales (!ta) inittype then () else error("trexp::ArrayExp - El tipo de la expresion inicializadora "^pt(inittype)^"no coincide con el tipo declarado "^typ, nl)
             in
-                print "Pase por ArrayExp!!\n";
                 {exp=arrayExp{size=sizeexp, init=initexp}, ty=TArray (ta, ur)}
             end
         and trvar(SimpleVar s, nl) =
@@ -309,7 +292,6 @@ fun transExp(venv, tenv) =
                 val venv' = tabInserta(name, (Var{ty=tyinit, access=acc, level=level}), venv)
                 val ci = varDec acc
             in
-                print "Pase por trdec::VarDec1!!\n";
                 (venv', tenv, [assignExp{var=ci, exp=expinit}])
             end
         | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
@@ -324,7 +306,6 @@ fun transExp(venv, tenv) =
                 val venv' = tabRInserta(name, (Var{ty=tyv, access=acc, level=level}), venv)
                 val ci = varDec acc
             in
-                print "Pase por trdec::VarDec2!!\n";
                 (venv', tenv, [assignExp{var=ci, exp=expinit}])
             end
         | trdec (venv,tenv) (FunctionDec fs) =
@@ -351,7 +332,7 @@ fun transExp(venv, tenv) =
                                             | SOME t => case tabBusca(t, tenv) of
                                                             NONE => error ("trdec: (FunctionDec) (aux): el tipo "^t^" no existe!", nl)
                                                             | SOME t' => t'
-                          (* level and Func MUST! have the same LABEL otherwise function calls won't match to the right function*)
+                          (* level y Func DEBEN! tener el mismo LABEL, sino la llamada a funcion no va a matchear a la funcion correcta *)
                           val lab = if name = "_tigermain" then name else name^"_"^tigertemp.newlabel()^"_"^(Int.toString nl)
                           (* extern=false ya que las funciones externas se definen en runtime *)
                           val lvl = newLevel {parent=topLevel(), name=lab, formals=map (! o #escape) params}
@@ -360,7 +341,7 @@ fun transExp(venv, tenv) =
                       in
                         aux venv'' fss
                       end
-                (* *)
+                (* Procesa los parametros de la funcion declarada *)
                 fun addParams venv [] cis = cis
                    | addParams venv (({name, params, body, ...}, nl)::fss) cis =
                      let
@@ -372,9 +353,8 @@ fun transExp(venv, tenv) =
                                          | SOME (Func{result, level,...}) => (result, level)
                                          | SOME _ => error("trdec: No se puede definir una variable y una funcion con el mismo nombre",nl)
 
-                        (* Para traducir el cuerpo de la función necesitamos actualizar las varaibles de entorno utilizadas por actualLevel y topPila. *)
+                        (* Para traducir el cuerpo de la función necesitamos actualizar las variables de entorno utilizadas por actualLevel y topPila. *)
                         (* Al traducir el cuerpo de la función el contexto debe ser el de la función y no el actual *)
-                        (* Pregunta para Guille -> Agrega a la pila la etiqueta vacia? e incrementa la variable de entorno actualLevel*)
                         val _ = preFunctionDec()
                         val _ = pushLevel(funcLevel) (* actualizo pilaLevel para que topLevel() devuelva el nivel de la función *)
 
@@ -382,7 +362,7 @@ fun transExp(venv, tenv) =
                         fun addParam [] [] venv = venv
                           | addParam (t::ts) ({name=name, escape=escape,...}::fields) venv =
                             let
-                                val acc = allocArg (topLevel()) true (*)(!escape)*)
+                                val acc = allocArg (topLevel()) true (* En i386 todos los argumentos se pasan por la pila *)
                                 val lvl = getActualLev()
                                 val venv' = tabRInserta(name, Var{ty=t, access=acc, level=lvl}, venv)
                             in
@@ -391,10 +371,6 @@ fun transExp(venv, tenv) =
                           | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
                         val venv' = addParam tipos params venv
                         val {ty=tyBody, exp=expBody} = transExp (venv', tenv) body
-                        (*
-                        val _ = ppt tyBody
-                        val _ = ppt tyResult
-                        *)
                         val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^pt(tyResult)^" y el tipo de su cuerpo "^pt(tyBody)^" no coinciden",nl)
                         val isProc = (tyResult = TUnit)
                         val ci = functionDec(expBody, funcLevel, isProc)
@@ -408,7 +384,6 @@ fun transExp(venv, tenv) =
                 val venv' = aux venv fs
                 val cis = addParams venv' fs []
             in
-                print "Pase por trdec::FunctionDec!!\n";
                 (venv', tenv, cis)
             end
         | trdec (venv,tenv) (TypeDec ts) =
@@ -421,7 +396,6 @@ fun transExp(venv, tenv) =
               val ltsinpos = List.map (fn (x,pos) => x) ts
               val tenv' = tigertopsort.fijaTipos ltsinpos tenv
           in
-              print "Pase por trdec::TypeDec!!\n";
               (venv, tenv', [])
           end
     in trexp end
