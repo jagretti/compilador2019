@@ -16,7 +16,6 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
         fun emit x = ilist := x :: !ilist
 
         fun result (gen) = let val t = tigertemp.newtemp() in gen t; t end
-        (*COMLETAR*)
 
         fun munchStm (SEQ(a, b)) = (munchStm a; munchStm b)
           | munchStm (MOVE(MEM(BINOP(PLUS, e1, CONST i)), e2)) =
@@ -270,7 +269,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                        src = [],
                                        dst = [r],
                                        jump = NONE}))
-         | munchExp (TEMP t) = (print("codegen :: TEMP="^t^"\n"); t)
+         | munchExp (TEMP t) = t
          | munchExp _ = raise Fail "Shouldn't happen (munchExp (_))"
 
 

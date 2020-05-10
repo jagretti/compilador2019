@@ -227,7 +227,6 @@ fun callExp (name, external, isproc, lev:level, ls) =
                     val t' = newtemp()
                 in preparaArgs t ((TEMP t')::rt, (MOVE(TEMP t', unEx h))::re)
                 end
-        val _ = print("callExp "^name^" stack "^Int.toString(#level lev)^"\n");
         val (ta, ls') = preparaArgs (ls) ([],[]) (* no hacemos rev, ya que se preparan al reves en preparaArgs *)
         (* extern=true significa que la funcion es de runtime por lo cual no se pasara el fp *)
         val ta' = if external then ta else fplev::ta

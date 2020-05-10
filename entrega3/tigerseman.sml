@@ -405,5 +405,5 @@ fun transProg ex =
                                                result=SOME "int", body=ex}, 0)]],
                            body=UnitExp 0}, 0)
         val _ = transExp(tab_vars, tab_tipos) main
-    in  print "bien!\n" end
+    in print "tigerseman OK!\n" end
 end

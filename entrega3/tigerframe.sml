@@ -157,7 +157,6 @@ fun procEntryExit3(frame, body) =
                 ^ "\tmovl %esp, %ebp\n"
                 ^ "\tsubl $" ^ Int.toString (abs(!(#numberOfLocalVariables frame)) * wSz) ^", %esp\n"
         val epilog = "\tleave\n\tret\n\n"
-        val _ = print("procEntryExit3 :: name="^(name frame)^" numberOfLocalVariables="^Int.toString (abs(!(#numberOfLocalVariables frame))) ^"\n")
     in
         {prolog = prolog, body = body, epilog = epilog}
     end

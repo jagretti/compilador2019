@@ -8,6 +8,7 @@ open tigercanon
 open tigerinterp
 open tigercodegen
 open BasicIO Nonstdio
+open Process
 
 fun lexstream(is: instream) =
     Lexing.createLexer(fn b => fn n => buff_input is b 0 n);
@@ -134,8 +135,11 @@ fun main(args) =
             end
         val instructions = map (fn(stms, frame) => generateInstructions(stms, frame)) canonProcs
         val _ = generateAssembly(instructions, stringList)
+        val status = system "gcc runtime.c tigermain.s -m32 -g"
     in
-        print "yes!!\n"
+        if isSuccess status
+        then print "yes!!\n"
+        else print "noo!!\n"
     end     handle Fail s => print("Fail: "^s^"\n")
 
 val _ = main(CommandLine.arguments())
