@@ -57,7 +57,7 @@ type frame = {
     name: string,
     formals: bool list,
     locals: bool list,
-    actualLocal: int ref,
+    numberOfLocalVariables: int ref,
     actualArg: int ref
 }
 
@@ -70,7 +70,7 @@ fun newFrame{name, formals} = {
     name=name,
     formals=formals,
     locals=[],
-    actualLocal=ref localsInicial, (* number of locals variables allocated in the frame *)
+    numberOfLocalVariables=ref localsInicial, (* number of locals variables allocated in the frame *)
     actualArg=ref argsInicial      (* number of arguments allocated and access from within the current level *)
 }
 
@@ -106,21 +106,21 @@ fun allocArg (f: frame) b =
         | false => InReg(tigertemp.newtemp())
 
 (* Aloca una variable local. Puede ser alocada en el frame o en un registro. *)
-(* Si la variable es escapada, reserva espacio en el frame actualizando #actualLocal. *)
+(* Si la variable es escapada, reserva espacio en el frame actualizando #numberOfLocalVariables. *)
 (* Ejemplo: alocar la primer variable local "escapada". *)
 (* - Requisitos: la variable debe estar en fp-4. Ver comentario arriba de este archivo. *)
-(* - Estado inicial: frame.actualLocal es cero *)
+(* - Estado inicial: frame.numberOfLocalVariables es cero *)
 (* - Solucion: *)
-(*     -4 = (#actualLocal * wsz) - localGap *)
-(*        = (#actualLocal * 4) - 4 *)
-(*        = (#actualLocal - 1) * 4 *)
+(*     -4 = (#numberOfLocalVariables * wsz) - localGap *)
+(*        = (#numberOfLocalVariables * 4) - 4 *)
+(*        = (#numberOfLocalVariables - 1) * 4 *)
 (*        = resutado explicado en la cabecera de este archivo *)
-(*     Ademas actualizar frame#actualLocal con una entrada mas *)
+(*     Ademas actualizar frame#numberOfLocalVariables con una entrada mas *)
 fun allocLocal (f: frame) b =
     case b of
         true =>
-            let val ret =  (!(#actualLocal f) * wSz) + localsGap
-                val _ = #actualLocal f:=(!(#actualLocal f)-1);
+            let val ret =  (!(#numberOfLocalVariables f) * wSz) + localsGap
+                val _ = #numberOfLocalVariables f:=(!(#numberOfLocalVariables f)-1);
             in
                 InFrame ret
             end
@@ -162,9 +162,9 @@ fun procEntryExit3(frame, body) =
                 ^ name frame ^ ":\n"
                 ^ "\tpushl %ebp\n"
                 ^ "\tmovl %esp, %ebp\n"
-                ^ "\tsubl $" ^ Int.toString (abs(!(#actualLocal frame)) * wSz) ^", %esp\n"
+                ^ "\tsubl $" ^ Int.toString (abs(!(#numberOfLocalVariables frame)) * wSz) ^", %esp\n"
         val epilog = "\tleave\n\tret\n\n"
-        val _ = print("procEntryExit3 :: name="^(name frame)^" actualLocal="^Int.toString (abs(!(#actualLocal frame))) ^"\n")
+        val _ = print("procEntryExit3 :: name="^(name frame)^" numberOfLocalVariables="^Int.toString (abs(!(#numberOfLocalVariables frame))) ^"\n")
     in
         {prolog = prolog, body = body, epilog = epilog}
     end
