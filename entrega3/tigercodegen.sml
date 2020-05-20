@@ -176,6 +176,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
           | munchStm (LABEL lb) =
             emit (A.LABEL {assem = lb^":",
                            lab = lb})
+          | munchStm _ = raise Fail "Shouldn't happen (munchStm (_))"
 
         and munchExp (CONST i) =
             (* movl $i, d0  =>  d0 = $i *)
@@ -204,7 +205,6 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                          src = [munchExp e],
                                          dst = [r],
                                          jump = NONE}))
-         | munchExp (BINOP (PLUS, e1, CONST i)) = munchExp (BINOP (PLUS, CONST i, e1))
          | munchExp (BINOP (PLUS, CONST i, e1)) =
            (* Libro *)
            (* movl $i, d0  =>  d0 = $i *)
@@ -217,6 +217,7 @@ fun codegen (frame: tigerframe.frame) (stm:tigertree.stm) : tigerassem.instr lis
                                           src = [munchExp e1, r],
                                           dst = [r],
                                           jump = NONE})))
+         | munchExp (BINOP (PLUS, e1, CONST i)) = munchExp (BINOP (PLUS, CONST i, e1))
          | munchExp (BINOP (oper, e1, e2)) =
            let
                fun emitOp instr =
