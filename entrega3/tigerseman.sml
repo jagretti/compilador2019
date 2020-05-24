@@ -345,8 +345,9 @@ fun transExp(venv, tenv) =
                 fun addParams venv [] cis = cis
                    | addParams venv (({name, params, body, ...}, nl)::fss) cis =
                      let
-                        val tipos = tyToTipo params
-                        val nombres = map #name params
+                        val revParams = rev params
+                        val tipos = tyToTipo revParams
+                        val nombres = map #name revParams
                         (* Busca en venv el Tipo del resulto y el nivel. Esta informacion la agregamos en el paso anterior ejecutando aux *)
                         val (tyResult, funcLevel)= case tabBusca(name, venv) of
                                            NONE => error("trdec: Funcion no declarada "^name ,nl)
@@ -369,7 +370,7 @@ fun transExp(venv, tenv) =
                                 addParam ts fields venv'
                             end
                           | addParam _ _ _ = error("trdec: La longitud de los nombres y los tipos no coincide",nl)
-                        val venv' = addParam tipos params venv
+                        val venv' = addParam tipos revParams venv
                         val {ty=tyBody, exp=expBody} = transExp (venv', tenv) body
                         val _ = if tiposIguales tyBody tyResult then () else error("trdec: Los tipos de retorno de la funcion "^name^" es "^pt(tyResult)^" y el tipo de su cuerpo "^pt(tyBody)^" no coinciden",nl)
                         val isProc = (tyResult = TUnit)
